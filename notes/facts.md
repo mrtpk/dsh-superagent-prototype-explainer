@@ -44,3 +44,16 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
 
 ## Added after B1 (2026-11-02)
 - See "Ticket / stage machine" and "Survey correction" above.
+
+## Added after B2 (2026-11-02)
+- Sibling-site links: use real `<a href="<../.../>deepseek-harness-explainer/site/<page>.html">`, counting
+  `..` levels from your page's own folder depth under `site/` (1 level for learn/concepts/tours/code/reference
+  pages, so 3 `..`; 0 levels for the home page, so 2 `..`). `build.py`'s `check_links` now accepts this one
+  sibling (see `explainer.json`'s `sibling_sites`) and verifies the target file exists on the sibling's
+  built `site/`. Do NOT name the sibling page as plain text without a working link — B2 first did this as a
+  workaround before the supervisor fixed `build.py`; every later batch must use the real link. [S]
+- `policy.ts`'s gate checks explicit admission before thread follow-ups, by the code's own comment
+  (policy.ts ~204): "so a thread's tickets never weaken an explicit request to a follow-up". [S]
+- `Assignments.report()` (assignments.ts ~126-129): a `ready` report ends the Ticket only once
+  `followsDone()` holds (or the Ticket follows no Threads); a `dropped` report ends it using
+  `followsDone()`'s outcome, or `'dropped'` if that is still undefined. [S]

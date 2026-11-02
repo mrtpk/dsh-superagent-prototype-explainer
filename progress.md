@@ -1,7 +1,8 @@
 # dsh-superagent Explainer — Progress
 
 Last update: 2026-11-02
-Current phase: **1b Samples** — B1 foundation done and committed. Next: home, learn/what-this-is, the tour.
+Current phase: **Stop point 2.** Phase 1 (foundation + samples) is done and committed. Waiting for the
+user to review the sample pages before the full build (B3-B6, F) starts.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -11,7 +12,7 @@ Update it after every subagent finishes and after every user decision.
 | Phase | Status | Notes |
 |---|---|---|
 | 0 Plan approval | done (scaled-down scope) | plan.md §2, §11 |
-| 1 Foundation + samples | in progress (1a done) | plan.md §12 |
+| 1 Foundation + samples | done | Stop point 2: waiting for user review |
 | Full build (plan §13) | not started | 12 pages total |
 | F Final pass | not started | |
 
@@ -19,8 +20,8 @@ Update it after every subagent finishes and after every user decision.
 
 | Batch | Writer | Spot-check | Committed |
 |---|---|---|---|
-| B1 Foundation | done | done (supervisor, 0 defects in the page; 1 survey error found and logged) | (next commit) |
-| B2 Samples | not started | – | – |
+| B1 Foundation | done | done (supervisor, 0 defects in the page; 1 survey error found and logged) | fa6638e |
+| B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | (next commit) |
 | B3 Domain core | not started | – | – |
 | B4 Execution | not started | – | – |
 | B5 Prompts and panel | not started | – | – |
@@ -40,6 +41,25 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: B2 samples committed: home page (real system map, start-here, sibling-site mention), new
+  `learn/what-this-is` (the site's one basics page, with the sibling-site recap), new
+  `tours/life-of-a-github-mention` (13 stops, GitHub comment to Ticket end). 2 new diagrams
+  (b2_domain_map, b2_mention_tour). No new glossary terms needed (core.json already covers them).
+  DECISION (supervisor): fixed a real build.py gap the writer found and correctly refused to work around
+  by guessing — `check_links` hard-errored on any link leaving `site/`, with no way to link the sibling
+  site `deepseek-harness-explainer`. Added `sibling_sites` to explainer.json (`["deepseek-harness-explainer"]`)
+  and a narrow allowance in `check_links`: a link matching `(../)+<sibling>/site/<path>` is accepted only if
+  that exact file exists on the sibling's built site (verified on disk, not a blind allow). Converted the
+  writer's plain-text sibling mentions (worked around the gap) into real `<a href>` links in
+  `learn/what-this-is.html` and `index.html`; rebuilt clean (0 errors) and confirmed all 5 sibling links
+  resolve (HTTP 200 via Playwright) with no visual regression. This rule now applies to every later batch:
+  sibling-site links must be real `<a href="../.../deepseek-harness-explainer/site/...">` links, not named
+  text. Supervisor spot-checked 2 of the tour's harder claims (policy.ts's explicit-before-followup gate
+  order; assignments.ts's followsDone-gated `ready`/`dropped` ending logic): both correct, 0 defects.
+  Spot-checked the diagram-bug fix the writer reported (title text no longer clipped behind a tag pill):
+  confirmed in the built SVG. build.py --strict: 0 errors, 12 expected "coming soon" warnings. Playwright
+  1280/390px on all 3 pages: 0 overflow, 0 JS errors.
+  **STOP POINT 2 reached: waiting for user review of the sample pages before the full build starts.**
 - 2026-11-02: B1 foundation committed: STYLE.md adapted (vocabulary table, out-of-scope list, single-depth
   + sibling-recap rules), nav files for all 12 pages, core glossary (22 terms), concepts/ticket-lifecycle
   as the full reference sample page, with the Ticket stage-machine stepper (the site's one interactive
@@ -66,9 +86,9 @@ Newest first.
 
 ## Next step
 
-Start Phase 1b (samples, plan.md §12): one subagent for `index` (home, system map, code version),
-`learn/what-this-is` (recap + links to the sibling site), and `tours/life-of-a-github-mention`. Then Stop
-point 2 — show the user the sample pages before the full build (B3-B6, F) starts.
+Waiting for the user to review the sample pages (index.html, learn/what-this-is, tours/life-of-a-github-mention,
+concepts/ticket-lifecycle with its stage-machine stepper). On approval, start B3 (concepts/sources-and-triggers,
+concepts/policy-and-authorization), one subagent at a time, through B4, B5, B6 and the final pass F.
 
 ## Questions for the user
 
@@ -84,3 +104,4 @@ point 2 — show the user the sample pages before the full build (B3-B6, F) star
 |---|---|---|
 | 2026-10-30 | Codebase survey (template A) | Reported in plan.md §3. No files changed (read-only). |
 | 2026-11-02 | B1 foundation (template B) | STYLE.md, nav, glossary, concepts/ticket-lifecycle + stepper visual + 1 diagram. 0 build errors. Supervisor spot-check: 0 defects, 1 survey error found (see notes/facts.md). |
+| 2026-11-02 | B2 samples (template C) | home, learn/what-this-is, tours/life-of-a-github-mention + 2 diagrams. 0 build errors. Found a build.py gap (sibling links); supervisor fixed it. Supervisor spot-check: 0 defects. |

@@ -24,10 +24,17 @@ pattern:
 bundles (`learn/profiles-and-bundles`), the turn/step/round session vocabulary
 (`learn/session-and-loop-vocabulary`), skills (`concepts/skills`), and jobs/background work
 (`concepts/jobs-workflow-goal-plan`). If your page touches one of these, give it **one sentence** and a
-`{{link}}`-style pointer (a plain `<a>` to the other site's page, since it is a different build) — do not
-re-explain the mechanism. Your job is what dsh-superagent itself adds on top: Source, Trigger, Thread,
-Policy, Eval, Ticket, Executor, Effects, the Panel. This rule is binding for every batch, not only
-`learn/what-this-is`.
+real link — do not re-explain the mechanism. Your job is what dsh-superagent itself adds on top: Source,
+Trigger, Thread, Policy, Eval, Ticket, Executor, Effects, the Panel. This rule is binding for every batch,
+not only `learn/what-this-is`.
+
+**How to link to the sibling site (fixed in B2, do not redo this investigation):** use a real
+`<a href="<dots>deepseek-harness-explainer/site/<page>.html">` link, not plain text naming the page.
+`build.py`'s `check_links` has a narrow, verified allowance for this one sibling (see `explainer.json`'s
+`sibling_sites`): it checks the target file actually exists on the sibling's built `site/`. Count `..`
+levels from your own page's folder depth under `site/`: 3 `..` from a `learn/`, `concepts/`, `tours/`,
+`code/` or `reference/` page; 2 `..` from the home page (`index.html`, at `site/` root). Example from a
+concept page: `<a href="../../../deepseek-harness-explainer/site/concepts/skills.html">"Skills"</a>`.
 
 ## Paths
 - Explainer folder: /mnt/c/Users/tpesc/Downloads/test-harness/dsh-superagent-prototype-explainer (git repo;

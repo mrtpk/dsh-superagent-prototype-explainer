@@ -82,6 +82,8 @@ ASSETS = ROOT / "assets"
 DIAGRAMS = ROOT / "diagrams"
 DIAGRAM_OUT = ROOT / "build" / "diagrams"
 
+SIBLING_SITES = CFG.get("sibling_sites") or []   # folder names of sibling explainer projects (see explainer.json)
+
 PRISM = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0"
 PRISM_COMPONENTS = CFG.get("prism_components") or [
     "prism-core", "prism-clike", "prism-c", "prism-cpp", "prism-python", "prism-bash", "prism-json"]
@@ -1382,6 +1384,13 @@ def check_links(rendered: dict[str, str], ids: dict[str, set[str]], extra_files:
             else:
                 target = os.path.normpath((base / path).as_posix()).replace("\\", "/")
             if target.startswith(".."):
+                sib_m = re.match(r"^(?:\.\./)+([^/]+)/site/(.+)$", target)
+                sib_name = sib_m.group(1) if sib_m else None
+                if sib_name in SIBLING_SITES:
+                    sib_target = ROOT.parent / sib_name / "site" / sib_m.group(2)
+                    if not sib_target.is_file():
+                        R.error(f"site/{out_rel}", f"sibling-site link target missing: {url} (looked for {sib_target})")
+                    continue
                 R.error(f"site/{out_rel}", f"link leaves the site folder: {url}")
                 continue
             if target not in rendered and target not in extra_files:

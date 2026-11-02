@@ -1,0 +1,122 @@
+---
+title: Life of a GitHub mention: from a comment to a merged pull request
+nav_title: Life of a GitHub mention
+level: Intermediate
+prerequisites: learn/what-this-is, concepts/sources-and-triggers
+related: concepts/policy-and-authorization, concepts/ticket-lifecycle, concepts/executor-and-worker-sessions
+summary: One GitHub comment that mentions the agent, followed stop by stop through Intake, the gate, Eval, a Ticket, a pull request and the Ticket's end.
+---
+<x-sentence>An allowed person mentions the agent in a GitHub comment, and the comment becomes a {{term ticket | Ticket}}, a pull request and, eventually, a closed Ticket.</x-sentence>
+
+<h2>The idea</h2>
+<p>This tour follows one real path through the system map on the home page: a comment that mentions dsh-superagent's GitHub account. Every stop below names the file and the function the reader is in, with the exact lines.</p>
+<p><strong>An everyday comparison.</strong> Think of an email that reaches a busy person's inbox. Someone checks whether the sender may ask for this kind of work, and decides to take it on. Only then do they start, reply and eventually close it out. The comparison stops at the gate: dsh-superagent's check is a written rule evaluated in code, not a person's judgment call.</p>
+
+<h2>The picture</h2>
+<x-diagram name="b2_mention_tour" alt="Three panels. Panel 1: three step cards, a comment mentions the agent, the gate admits it as explicit, accept creates the Ticket. Panel 2: three step cards, the Executor launches a worker, the worker Session opens a PR, the worker reports ready. Panel 3: two step cards, GitHub observes the PR close, the Ticket ends." caption="Figure: the tour's 13 stops, grouped into three parts: from mention to Ticket, from Ticket to pull request, and from report to end." />
+<p>Read each panel left to right. The three parts match this tour's stops in groups: stops 1-7 build the Ticket, stops 8-11 do the work, and stops 12-13 close it out.</p>
+
+<x-stop n="1" title="A GitHub comment mentions the agent">
+<p>The GitHub {{term source | Source}} reads a comment during a notification or repository poll, and turns it into a {{term trigger | Trigger}}. <code>mentions()</code> matches an <code>@login</code> mention with a word boundary, case-insensitively.</p>
+<x-code file="src/sources/github-trigger.ts" lines="60-76" highlight="60-61,71" caption="commentTrigger() sets addressed: 'mention' only when mentions() matches the comment body against the agent's own login." />
+<p>The repository poll calls this from <code>intakeComments()</code>, which reads comments since the Thread's cursor and passes each to <code>ctx.receive()</code> ({{cite src/sources/github.ts:384-402}}).</p>
+</x-stop>
+
+<x-stop n="2" title="Intake ingests the Trigger">
+<p><code>Intake.receive()</code> normalizes the timestamp, rejects a duplicate id, and checks the Source's scope before the Trigger enters the domain.</p>
+<x-code file="src/core/intake.ts" lines="19-30" highlight="23,25-29" caption="A duplicate Trigger id is dropped at once. A Trigger the Source does not listen to is saved as filtered, not ingested." />
+<p>Because no Ticket yet subscribes to this comment's {{term thread | Thread}}, the fan-out loop reaches none ({{cite src/core/intake.ts:34-48}}), and the Trigger is queued for {{term eval | Eval}} ({{cite src/core/intake.ts:58}}).</p>
+</x-stop>
+
+<x-stop n="3" title="The gate admits it as explicit">
+<p>Before Eval batches anything, the active {{term policy | Policy}}'s gate decides the {{term strength | strength}} of every queued Trigger on the Thread. For a human Trigger, an allowed sender who addressed the agent is always explicit.</p>
+<x-code file="src/policy.ts" lines="191-198" highlight="192,197" caption="A non-human Trigger takes the separate machineGate() path (line 192). An allowed, addressed human sender is explicit (line 197), before any thread follow-up or admission-table check runs." />
+<p>{{cite src/core/evals.ts:96}} calls this gate once per queued Trigger when <code>Evals.start()</code> runs on the Thread.</p>
+</x-stop>
+
+<x-stop n="4" title="Eval batches the Thread and asks the assessor">
+<p><code>Evals.start()</code> takes every Trigger still queued on the Thread, keeps the strongest admissible one, and opens one Eval for the whole batch.</p>
+<x-code file="src/core/evals.ts" lines="107-118" highlight="107-111,117-118" caption="The Eval record keeps the batch's strength, actor and gate basis. assessor.request() hands the candidate to the main Session." />
+<p>The main Session reads this candidate with <code>orchestrator_eval</code> and <code>orchestrator_eval_read</code> ({{cite src/app/tools/main.ts:202-213}}). An explicit mention from an allowed person skips a full assessment, though, and is routed with <code>orchestrator_route</code> instead ({{cite docs/002-authorization.md:85-87}}).</p>
+</x-stop>
+
+<x-stop n="5" title="The main Session routes an accept">
+<p><code>orchestrator_route</code> lets the main Session decide several candidates in one call. Each item runs as its own Engine command, so one refused item never blocks the others.</p>
+<x-code file="src/app/tools/main.ts" lines="95-105" highlight="97-98,100" caption="An accept item calls engine.decide() with kind: 'accept'. A Decision that created no Ticket is reported back as the item's own refusal, not a thrown error." />
+<p>Accepting here records a {{term decision | Decision}} and, when it creates one, a Ticket.</p>
+<p>{{cite src/app/tools/main.ts:125-153}} defines the tool itself: up to 20 decisions per call, each answered on its own ({{cite src/app/tools/main.ts:129}}).</p>
+</x-stop>
+
+<x-stop n="6" title="Eval's accept builds the Mandate and asks for a Ticket">
+<p><code>Evals.decide()</code> routes the accept outcome to <code>accept()</code>, which builds the {{term mandate | Mandate}} the new Ticket will carry.</p>
+<x-code file="src/core/evals.ts" lines="306-314" highlight="310-311,314" caption="The Mandate records the gate's strength, basis and Policy version (line 310). Tickets.create() is asked to build the Ticket itself (line 314)." />
+<p>The Ticket's id is derived from the Eval's own id ({{cite src/core/evals.ts:311}}), so one Eval can never father two Tickets.</p>
+</x-stop>
+
+<x-stop n="7" title="Tickets.create() builds the Ticket and starts the Executor">
+<p><code>Tickets.create()</code> does four things in one call. It builds the Ticket and its first {{term assignment | Assignment}}. It subscribes the Ticket to every Thread of the Eval's Triggers, queues the accept's acknowledgement, and asks the {{term executor | Executor}} to start.</p>
+<x-code file="src/core/tickets.ts" lines="49-56" highlight="49-51,53,54" caption="The first Assignment is added before the Ticket is saved (lines 49-51). The acknowledgement and the Executor's start both follow in the same call (lines 53-54)." />
+<p>Ticket creation is covered in full on {{link concepts/ticket-lifecycle}}. This tour only follows the one path this mention takes.</p>
+</x-stop>
+
+<x-stop n="8" title="The acknowledgement goes back to GitHub">
+<p>Because the comment's Trigger is human and has a {{term channel | Channel}}, the accept's acknowledgement is queued for delivery before the worker even starts.</p>
+<x-code file="src/core/replies.ts" lines="43-45" caption="acknowledgeAccepted() only queues a message when the originating Trigger is human and carries a Channel." />
+<p>The {{term outbox | Outbox}} records a receipt and enqueues a durable {{term effect | effect}} in the same transaction ({{cite src/app/outbox.ts:27-32}}). Once dispatched, <code>sendGithub()</code> posts the comment under the agent's account, with a hidden marker so a retry never double-posts it ({{cite src/sources/github-channel.ts:18-45}}).</p>
+</x-stop>
+
+<x-stop n="9" title="The Executor launches the worker Session">
+<p><code>DshExecutor.start()</code> only enqueues a <code>launch</code> effect; the actual launch runs once a {{term worker-slot | worker slot}} is free.</p>
+<x-code file="src/executor/dsh.ts" lines="440-441" caption="sessions.ensure() creates the worker Session worker-&lt;ticket id&gt;, or reuses it if the Ticket already has one." />
+<p><code>launch()</code> prepares the Ticket's workspace directory on first use ({{cite src/executor/dsh.ts:434-438}}), then sends the first message with the Ticket's assignment text and the originating Trigger ({{cite src/executor/dsh.ts:449-466}}).</p>
+<x-deepdive title="What if every worker slot is already busy?">
+<p>A launch only runs once <code>WorkerSlots.reserve()</code> grants it a slot ({{cite src/executor/dsh.ts:192-194}}). The limit comes from the Executor's <code>maxWorkers</code> setting. A launch for new, proactive work waits in "Queued" until one frees up ({{cite docs/003-execution.md:15}}). A person's own message, or a status request, may use one extra slot beyond that limit. This is why a busy deployment can still answer someone already talking to a Ticket, even while every ordinary slot is full.</p>
+</x-deepdive>
+</x-stop>
+
+<x-stop n="10" title="The worker Session works, and opens a pull request">
+<p>The worker reads its assignment and the Ticket's execution variables, which name the agent's GitHub account and the Ticket it is working on.</p>
+<x-code file="src/sources/github.ts" lines="100-104" caption="The worker's execution environment includes the agent's GitHub account and the originating Issue or PR number, but no credential." />
+<p>A pull request the worker opens is recognized as the Ticket's own by its branch name. The branch's last path segment must match the Ticket's short name ({{cite src/sources/github-pull.ts:27-28}}), the same contract {{cite docs/003-execution.md:53}} describes.</p>
+</x-stop>
+
+<x-stop n="11" title="The worker reports ready, naming its pull request">
+<p><code>orchestrator_report</code> is how a worker tells its Ticket what happened. Naming a <code>pr_number</code> claims that pull request for the Ticket in the same call.</p>
+<x-code file="src/app/tools/executor.ts" lines="85-96" highlight="88,91,96" caption="The PR is read, then claimPull() validates it belongs to this Ticket, before engine.report() records the worker's report." />
+<p><code>claimPull()</code> accepts only the Ticket's own source PR, or an agent-authored PR on the Ticket's branch, and refuses a PR another open Ticket already claims ({{cite src/sources/github-pull.ts:35-49}}).</p>
+</x-stop>
+
+<x-stop n="12" title="The report is recorded; the Ticket waits for review">
+<p><code>Assignments.report()</code> stores the worker's {{term report | report}} on the Assignment, and decides whether this report ends the Ticket.</p>
+<x-code file="src/core/assignments.ts" lines="113-134" highlight="122,128-132" caption="The report is stored at line 122. A ready report with an open, followed pull request does not end the Ticket yet: followsDone() has no outcome until that pull request closes." />
+<p>With an open pull request still followed, this ready report leaves the Ticket in the stage docs/003 calls "Awaiting review" ({{cite docs/003-execution.md:13}}), not ended.</p>
+</x-stop>
+
+<x-stop n="13" title="GitHub observes the pull request close, and the Ticket ends">
+<p>A later poll reads the pull request again. Once it is closed or merged, <code>observePull()</code> reports it to the Ticket that follows it.</p>
+<x-code file="src/sources/github-pull.ts" lines="57-59" caption="observePull() calls closePull() once the pull request's own state says it ended." />
+<p><code>Tickets.threadClosed()</code> marks the follow closed and ends the Ticket once it is done with every pull request it follows ({{cite src/core/tickets.ts:77-89}}, {{cite src/core/tickets.ts:345-362}}). GitHub already shows the merge or close on the pull request itself, so the final notice this Ticket would otherwise send skips its GitHub Channels ({{cite src/sources/github-pull.ts:102-104}}).</p>
+</x-stop>
+
+<h2>What can go wrong</h2>
+<x-warning title="A ready report does not always end the Ticket"><p>Check whether the Ticket still follows an open pull request before reading a <code>ready</code> report as finished work. {{cite src/core/assignments.ts:128-132}} ends the Ticket only once <code>followsDone()</code> has an outcome, which an open, followed pull request does not yet have.</p></x-warning>
+<ul>
+  <li><strong>An inferred mention would not take this path.</strong> This tour assumes an allowed sender's explicit mention. A person not on the allowed list, or a comment that does not mention the agent, takes the admission-table path instead. That path may need <code>auto</code> mode to ever become a Ticket ({{cite docs/002-authorization.md:91-101}}).</li>
+  <li><strong>A later comment on the same Thread does not repeat this tour.</strong> Once the Thread's Ticket exists, a later Trigger reaches it through its Subscription, with no new gate check and no new Eval ({{cite src/core/intake.ts:34-48}}).</li>
+</ul>
+<p><strong>Why it matters.</strong> Reading every comment as a fresh "mention to Ticket" run misses something important. Only the first comment on a Thread takes this full path. Every later one is cheaper, and the worker decides it, not the gate.</p>
+
+<x-quiz>
+  <x-q level="easy">Which function decides that an allowed person's mention is explicit, not inferred?
+    <x-a><p>The Policy's gate, {{cite src/policy.ts:191-211}}. Line 197 returns explicit strength once an allowed sender's Trigger is addressed.</p></x-a>
+  </x-q>
+  <x-q level="easy">Does the acknowledgement reply wait for the worker to start?
+    <x-a><p>No. {{cite src/core/tickets.ts:49-56}} queues the acknowledgement in the same call that creates the Ticket, before the Executor's launch even reaches a worker slot.</p></x-a>
+  </x-q>
+  <x-q level="medium">How does dsh-superagent know a pull request belongs to this Ticket, if the worker opened it itself?
+    <x-a><p>By its branch name. {{cite src/sources/github-pull.ts:27-28}}'s <code>ticketBranch()</code> matches the branch's last path segment against the Ticket's short name, which <code>claimPull()</code> then checks when the worker reports it ({{cite src/sources/github-pull.ts:35-49}}).</p></x-a>
+  </x-q>
+  <x-q level="hard">A worker reports ready with an open pull request it is still following. Does the Ticket end?
+    <x-a><p>No. {{cite src/core/assignments.ts:128-132}} only ends the Ticket once <code>followsDone()</code> gives it an outcome, which needs every followed pull request to be closed first ({{cite src/core/tickets.ts:95-100}}). The Ticket ends later, once GitHub reports the close ({{cite src/core/tickets.ts:77-89}}).</p></x-a>
+  </x-q>
+</x-quiz>
