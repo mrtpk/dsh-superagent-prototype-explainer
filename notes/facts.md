@@ -69,6 +69,27 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   Sources, views and the Outbox only read state or update their own records. Confirmed as a direct code
   citation (engine.ts:19-20's own doc says the same), not only a docs/ claim. [S]
 
+## Prompts and panel (B5, confirmed by supervisor spot-check 2026-11-02)
+- Two distinct precedence mechanisms exist and must not be conflated (docs/004 blends them in prose):
+  1. `mandateInstructions()` (dsh.ts:91-94, sessions.ts:247-249): a recurring line appended to every
+     system-prompt render for a worker whose Mandate is still `inferred`.
+  2. `ticketExecution()`'s one-time assignment note (dsh.ts:102-108): built into the Ticket's first
+     assignment message, naming a matched rule's own procedure/communication precedence, for proactively
+     accepted Tickets only. [S]
+- The one-time note's resend on a later Assignment is conditional, not simply "no repeat": `workerIdle()`
+  (dsh.ts:449-460) computes `told = later && sessions.holds(sessionId, first)` (sessions.ts:157-159,
+  delivery.ts:61-62 — holds checks message history and inbox). When `told` is false (the Session lost the
+  first message, e.g. deleted), the FULL original brief, including the one-time note, is sent again
+  (dsh.ts:461-463's `text` branches on `told`). A page claiming it is simply "not repeated" on a later turn
+  is imprecise — fixed on `concepts/prompts-and-skills.html` by the supervisor (now: "only while the
+  Session still holds that message"). [S]
+- `Versions.save()` (versions.ts:21-28, exact) advances a whole-object snapshot pointer atomically; used by
+  both Settings (store.ts:184-186) and Prompts. [S]
+- The Deployment settings group (`src/deployment.ts`'s `Config`, a DSH Plugin Manager schema with
+  `Volatile` fields read fresh on each use) is architecturally separate from `src/app/settings.ts`'s
+  block/version system (`BLOCKS`: policy/eval/executor/source, plus `pause` via its own bypass method).
+  Confirmed via `src/client/settings.tsx:23` and `src/client/deployment.tsx:77`. [S]
+
 ## Conflicts and resolutions
 (none yet)
 

@@ -1,0 +1,45 @@
+{
+  "_about": "Owned by batch B5 (Prompts and panel). Checked against core.json, b3.json and b4.json first: no clash.",
+  "panel": {
+    "term": "Panel",
+    "short": "The React page dsh-superagent injects into DeepSeek Harness's own web sidebar, for supervising and configuring it.",
+    "long": "{{cite src/client/index.tsx:48-58}}'s <code>apply()</code> injects a sidebar icon and the main panel component into DSH's own slots.",
+    "aliases": ["management panel", "web panel"],
+    "page": "concepts/panel-and-management-api"
+  },
+  "team-section": {
+    "term": "team section",
+    "short": "One of three prompt sections a team writes directly: Communication, Ticket scope and Delivery requirements.",
+    "long": "{{cite src/app/prompts.ts:14-17}} lists the three sections and the exact heading each one gets in the composed prompt.",
+    "aliases": ["team sections"],
+    "page": "concepts/prompts-and-skills"
+  },
+  "built-in-part": {
+    "term": "built-in part",
+    "short": "One named section of the built-in system prompt, such as runtime/admission, that a team may override with its own text.",
+    "long": "{{cite src/app/prompts.ts:24-26}} lists the 15 parts a team may override, by the key an override names them by.",
+    "aliases": ["built-in parts", "prompt part"],
+    "page": "concepts/prompts-and-skills"
+  },
+  "source-skill": {
+    "term": "Source skill",
+    "short": "A bundled Skill that teaches the agents a Source's own tools, such as GitHub's gh CLI or reading a Feishu chat.",
+    "long": "dsh-superagent bundles exactly two: {{cite skills/dsh-superagent-github/SKILL.md}} and {{cite skills/dsh-superagent-feishu/SKILL.md}}. Each is registered as a DSH Skill in every Session's skill scope ({{cite src/app/sessions.ts:319-324}}); see the sibling site's <a href=\"../../../deepseek-harness-explainer/site/concepts/skills.html\">\"Skills\"</a> for how DSH itself loads one on demand.",
+    "aliases": ["bundled skill", "bundled Source skill"],
+    "page": "concepts/prompts-and-skills"
+  },
+  "prompt-revision": {
+    "term": "prompt revision",
+    "short": "One saved, numbered version of a role's prompt configuration: the team sections, overrides and skills, together.",
+    "long": "{{cite src/app/prompts.ts:39-41}} is the stored shape: a revision number, its predecessor, when and where it was saved, and the full configuration.",
+    "aliases": ["prompt version"],
+    "page": "concepts/prompts-and-skills"
+  },
+  "settings-block": {
+    "term": "settings block",
+    "short": "One named part of Settings, such as policy, executor or one Source, saved and versioned on its own.",
+    "long": "{{cite src/app/settings.ts:32-52}} lists the block kinds; {{cite src/app/store.ts:188}} keeps each block's own revision counter.",
+    "aliases": ["settings blocks"],
+    "page": "concepts/panel-and-management-api"
+  }
+}

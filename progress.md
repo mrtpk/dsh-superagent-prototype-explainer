@@ -2,7 +2,7 @@
 
 Last update: 2026-11-02
 Current phase: **Full build, in progress.** User approved the sample pages and said "build everything."
-B3, B4 done. B5, B6 and the final pass F remain.
+B3, B4, B5 done. B6 and the final pass F remain.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -23,8 +23,8 @@ Update it after every subagent finishes and after every user decision.
 | B1 Foundation | done | done (supervisor, 0 defects in the page; 1 survey error found and logged) | fa6638e |
 | B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | 93bc333 |
 | B3 Domain core | done | done (supervisor, 0 defects) | c96fd30 |
-| B4 Execution | done | done (supervisor, 1 precision defect found and fixed) | (next commit) |
-| B5 Prompts and panel | not started | – | – |
+| B4 Execution | done | done (supervisor, 1 precision defect found and fixed) | 6352dd3 |
+| B5 Prompts and panel | done | done (supervisor, 1 precision defect found and fixed) | (next commit) |
 | B6 Code map + reference | not started | – | – |
 
 ## USER INSTRUCTIONS
@@ -43,6 +43,17 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: B5 prompts and panel committed: `concepts/prompts-and-skills` (prompt assembly/precedence,
+  bundled Source skills) and `concepts/panel-and-management-api` (React panel, tabs, Management API,
+  settings/prompt versioning). 2 new diagrams (b5_prompt_assembly, b5_panel_and_api). 6 new glossary terms
+  (panel, team-section, built-in-part, source-skill, prompt-revision, settings-block); `management-api`
+  reused. build.py --strict: 0 errors, 0 warnings, all 12 pages built (2 remaining B6 pages still "coming
+  soon"). Supervisor spot-checked the one-time assignment-note resend logic and found the page's claim ("a
+  later turn does not repeat it") dropped the real condition (only while the Session still holds the
+  opening message) — fixed directly, same kind of gap as B4's; rebuilt clean. 3 more claims spot-checked
+  (Versions.save() line range, sessions.holds()/delivery.ts chain, Deployment-config vs. settings-block
+  architectural split): all correct. Findings logged in notes/facts.md under "Prompts and panel (B5)".
+  Playwright 1280/390px: 0 overflow, 0 JS errors; the one sibling link (concepts/skills) resolves HTTP 200.
 - 2026-11-02: B4 execution committed: `concepts/executor-and-worker-sessions` (Executor port,
   `DshExecutor`, `WorkerSlots`, background jobs) and `concepts/effects-and-store` (Effects queue, Store,
   one-writer rules). 2 new diagrams (b4_executor_and_slots, b4_effects_and_store). 1 new glossary term
@@ -108,8 +119,8 @@ Newest first.
 
 ## Next step
 
-Start B5 (concepts/prompts-and-skills, concepts/panel-and-management-api), one subagent at a time,
-through B6 and the final pass F.
+Start B6 (code/central-files, reference/config-and-deployment — must say "Python script" for
+scripts/dsh-superagent, not "shell script", per the logged survey correction), then the final pass F.
 
 ## Questions for the user
 
@@ -128,3 +139,4 @@ through B6 and the final pass F.
 | 2026-11-02 | B2 samples (template C) | home, learn/what-this-is, tours/life-of-a-github-mention + 2 diagrams. 0 build errors. Found a build.py gap (sibling links); supervisor fixed it. Supervisor spot-check: 0 defects. |
 | 2026-11-02 | B3 domain core | sources-and-triggers, policy-and-authorization + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 0 defects. |
 | 2026-11-02 | B4 execution | executor-and-worker-sessions, effects-and-store + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (resume/restart condition). |
+| 2026-11-02 | B5 prompts and panel | prompts-and-skills, panel-and-management-api + 2 diagrams + 6 glossary terms. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (assignment-note resend condition). |

@@ -1,0 +1,68 @@
+---
+title: The panel and the Management API: tabs, routes and settings versions
+nav_title: The panel and the Management API
+level: Intermediate
+prerequisites: learn/what-this-is, concepts/ticket-lifecycle
+related: concepts/prompts-and-skills, concepts/policy-and-authorization, concepts/executor-and-worker-sessions
+summary: A React panel injected into DSH's web sidebar calls a loopback-only Management API; each settings block and prompt revision saves with its own version number.
+---
+<x-sentence>A React {{term panel | panel}} injected into DSH's web sidebar calls a loopback-only Management API, and every save versions against a number.</x-sentence>
+
+<h2>The idea</h2>
+<p>dsh-superagent adds no page of its own. {{cite src/client/index.tsx:48-58}}'s <code>apply()</code> injects a sidebar icon and one main panel component into DSH's own slot system. The panel is an ordinary browser page. It never reads the Store or the Engine directly. It calls a small local HTTP API instead, under one path prefix: the {{term management-api | Management API}} ({{cite src/app/http.ts:230-246}}).</p>
+<p><strong>An everyday comparison.</strong> Think of the panel as a bank's teller window. It never touches the vault itself, only a counter where it hands over requests and gets answers back. The comparison stops at who else uses the counter. A second visitor here, the <code>scripts/dsh-superagent</code> command-line script, uses that same counter to check whether the service is healthy.</p>
+
+<h2>The picture</h2>
+<x-diagram name="b5_panel_and_api" alt="Three panels. Panel 1: React panel, Management API and Store/Prompts/Settings/Engine boxes in a row, connected by arrows labelled x-orchestrator-request: 1 and reads/writes. Panel 2: a list of the six tabs, Overview, Source, Trigger, Eval, Execution and Settings, each with what it shows. Panel 3: Whole-object snapshot and One counter per block boxes both feeding a Stale revision to 409 Conflict box." caption="Figure: what calls the Management API and how (panel 1); the six tabs (panel 2); the two layers that keep a save safe (panel 3)." />
+<p>Read panel 1 left to right: the panel's own fetch call, the API, and the host state behind it. Panel 2 lists the six tabs in their fixed order. Panel 3 shows the two checks a save passes before it is accepted.</p>
+
+<h2>In the code</h2>
+
+<h3>Step 1: one HTTP prefix, checked for loopback and same origin</h3>
+<p><code>registerHttp()</code> refuses to start unless DSH's web server is bound to <code>127.0.0.1</code>. It then serves every route under <code>/orchestrator/api/</code> ({{cite src/app/http.ts:230-246}}). <code>sameOrigin()</code> adds two checks. The request's <code>Host</code> header must name that same loopback port. A marker header, <code>x-orchestrator-request: 1</code>, must be present ({{cite src/app/http.ts:74-78}}). The panel's own fetch helper sends exactly that header on every call ({{cite src/client/api.ts:33-37}}).</p>
+<p>The panel never imports host code to do this. <code>src/app/api.ts</code> declares the whole route table as types only ({{cite src/app/api.ts:1}}, {{cite src/app/api.ts:20-45}}). The browser bundle carries the request and response shapes, but none of the server logic that produces them.</p>
+
+<h3>Step 2: six tabs, one concept per tab</h3>
+<p>{{cite src/client/route.ts:7}} fixes the six tabs: Overview, Source, Trigger, Eval, Execution and Settings. <code>Pages()</code> renders one view component per tab. Each reads its own slice of state, through the same typed <code>call()</code> helper ({{cite src/client/app.tsx:148-159}}).</p>
+<x-code file="src/client/route.ts" lines="7-8" caption="The six tabs, in the fixed order the sidebar shows them." />
+<p>Settings itself is five further groups, shown as one more level of tabs: Sources, Eval, Execution, Prompts and Deployment ({{cite src/client/route.ts:9}}). The Prompts group alone has three further views: Edit, Full prompt and History ({{cite src/client/prompts.tsx:13}}). That group is covered on {{link concepts/prompts-and-skills}}.</p>
+
+<h3>Step 3: a settings save versions against a block, not the whole object</h3>
+<p>Settings as a whole is one versioned record. It saves the same way as a {{term prompt-revision | prompt revision}}: each save stores a full numbered snapshot, and moves a pointer to it ({{cite src/app/versions.ts:21-28}}, {{cite src/app/store.ts:184-186}}). Each {{term settings-block | settings block}}, such as <code>executor</code> or one Source, also keeps its own separate counter ({{cite src/app/store.ts:188}}). So one page's save cannot be rejected by an unrelated page's edit.</p>
+<x-code file="src/app/settings.ts" lines="148-151" caption="A save names the block revision it read. A mismatch throws at once, before any validation runs." />
+<p>Saving one block still re-checks for staleness after any async account check ({{cite src/app/settings.ts:166-168}}). This catches a save made elsewhere meanwhile. A no-op save, one whose merged value exactly equals the current settings, records no new revision at all ({{cite src/app/settings.ts:172-175}}).</p>
+
+<h3>Step 4: some fields only the panel itself may change</h3>
+<p>A settings save carries an origin: <code>'panel'</code>, <code>'tool'</code> or, for policy, <code>'sync'</code> ({{cite src/policy.ts:109}}). Two kinds of change are refused from any origin but <code>'panel'</code>. One is the execution directory, prepare command or blocked-command list. The other is a Source's own account ({{cite src/app/settings.ts:44-45}}, {{cite src/app/settings.ts:50-51}}). This guards against a prompt-injected tool call changing what commands a worker may run. It is not an operating-system sandbox: a worker already runs ordinary shell commands.</p>
+
+<h2>More detail</h2>
+<p><code>GET state</code> is the one route both the panel and the command-line script read. The panel polls it every 5 seconds by default ({{cite src/client/provider.tsx:74}}). It drops to 1-second polling while it detects a restart ({{cite src/client/provider.tsx:85-98}}). <code>scripts/dsh-superagent status</code> reads the same route once, with the same marker header ({{cite scripts/dsh-superagent:81-84}}). A write route such as <code>PUT settings/:block</code> or <code>PUT prompts</code> takes the revision it read back. The host then refuses a stale save with an HTTP 409, instead of silently overwriting someone else's change ({{cite src/app/http.ts:89}}).</p>
+<p>One config knob changes how much a prompt configuration may hold: <code>promptMaxChars</code>, read fresh on every save rather than fixed at startup ({{cite src/app/http.ts:93-95}}). The Deployment settings group edits this same volatile field. dsh-superagent reads it again on each use, so a change applies without a restart ({{cite src/deployment.ts:14}}, {{cite src/deployment.ts:17}}).</p>
+<x-deepdive title="Why a prompt upgrade needs a human choice, not a silent merge">
+<p>An override records the key of the built-in text it was edited from. When that built-in text later changes, <code>defaultChanged()</code> compares the recorded key against the part's current built-in text ({{cite src/app/prompts.ts:186-194}}). A mismatch flags the part, with the old text when the host still has it saved. The panel's Prompts tab runs the same comparison on its own copy of the part ({{cite src/client/prompts.tsx:115-118}}). It shows a diff with exactly two buttons: keep the team's text, or take the new default ({{cite src/client/prompts.tsx:161-171}}). Neither button merges the two texts.</p>
+</x-deepdive>
+<p>For the full list of settings groups, the panel's own guiding questions, and how search resolves a Feishu link, see the repository's own {{cite docs/005-panel.md}}.</p>
+
+<h2>What can go wrong</h2>
+<x-warning title="A 404 from the Management API does not always mean the record is missing"><p>An empty 404 can come from DSH's own web server. This happens when dsh-superagent's routes are briefly unmounted during a restart, not when a record truly does not exist. The panel's own API client marks this case <code>unreachable</code> rather than <code>missing</code> ({{cite src/client/api.ts:49-55}}).</p></x-warning>
+<ul>
+  <li><strong>Reading two settings blocks, then saving one, can still conflict.</strong> That happens only if a third change lands on that same block in between. Staleness is checked per block, not per page load ({{cite src/app/settings.ts:150-151}}). The save fails even if the fields the panel edited were untouched.</li>
+  <li><strong>A tool call cannot change the execution directory, blocked commands or a Source's account, whatever the request says.</strong> Only an origin of <code>'panel'</code> may ({{cite src/app/settings.ts:44-45}}, {{cite src/app/settings.ts:50-51}}).</li>
+</ul>
+<x-simplified><p>This page leaves out the exact fields of every settings group, and the full search syntax, such as a Feishu message id. See the repository's own {{cite docs/005-panel.md}}.</p></x-simplified>
+<p><strong>Why it matters.</strong> Treating every 404 as "this does not exist" can hide a restart in progress. Treating per-block versioning as whole-settings versioning can make an unrelated edit look like it caused a conflict.</p>
+
+<x-quiz>
+  <x-q level="easy">How many tabs does the panel have, and what is the last one?
+    <x-a><p>Six: Overview, Source, Trigger, Eval, Execution and Settings, with Settings last ({{cite src/client/route.ts:7}}).</p></x-a>
+  </x-q>
+  <x-q level="easy">What header marks a request to the Management API as coming from the panel or the CLI script?
+    <x-a><p><code>x-orchestrator-request: 1</code> ({{cite src/app/http.ts:74-78}}, {{cite scripts/dsh-superagent:81-84}}).</p></x-a>
+  </x-q>
+  <x-q level="medium">Two people open the Execution tab and a Source's own settings tab at the same moment and each saves a change. Does the second save fail?
+    <x-a><p>No, not because of the first save alone. <code>executor</code> and <code>source:&lt;id&gt;</code> are different settings blocks, each with its own revision counter ({{cite src/app/store.ts:188}}). A save fails only against a change to that same block.</p></x-a>
+  </x-q>
+  <x-q level="hard">A tool call tries to change the execution directory. What stops it, and why is this not described as a sandbox?
+    <x-a><p><code>executor</code>'s block guard throws unless the save's origin is <code>'panel'</code> ({{cite src/app/settings.ts:44-45}}). The code's own comment calls this a guardrail against a prompt-injected tool call. It is not an OS security boundary: a worker already runs shell commands with full access ({{cite src/app/settings.ts:143}}).</p></x-a>
+  </x-q>
+</x-quiz>
