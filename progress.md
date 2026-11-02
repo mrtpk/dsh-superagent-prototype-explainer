@@ -1,8 +1,8 @@
 # dsh-superagent Explainer — Progress
 
 Last update: 2026-11-02
-Current phase: **Full build done. Final pass F remains.** All 12 planned pages exist. 0 build errors, 0
-warnings, 0 "coming soon" placeholders left anywhere.
+Current phase: **Done.** All 12 planned pages exist, consistency pass F complete, 0 build errors, 0
+warnings, 0 "coming soon" placeholders.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -14,7 +14,7 @@ Update it after every subagent finishes and after every user decision.
 | 0 Plan approval | done (scaled-down scope) | plan.md §2, §11 |
 | 1 Foundation + samples | done | approved by user ("build everything") |
 | Full build (plan §13) | done | all 12 pages built, B1-B6 |
-| F Final pass | not started | consistency + full site check |
+| F Final pass | done | 1 glossary-coverage fix, 0 other defects |
 
 ## Full build — batch status
 
@@ -43,6 +43,15 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: Phase F (final consistency pass) committed. Checked all 12 pages for terminology consistency
+  (the "orchestrator" vs. "main Session" slip B5 flagged: not repeated elsewhere), cross-page mechanism
+  consistency (stage machine, gate order, Effects, settings blocks, Deployment split, all 19 central-files
+  citations), nav completeness, glossary coverage, and dead links. Found and fixed one gap: the `dsh-profile`
+  glossary term existed but was never linked from any page; linked it (and `dsh-bundle`) from
+  `learn/what-this-is.html`. Re-verified the B4 and B5 dropped-condition fixes are correctly worded and
+  searched the whole site for the same pattern elsewhere: none found. build.py --strict: 0 errors, 0
+  warnings. Full-site Playwright pass, 14 pages x 2 widths (1280/390px): 0 overflow, 0 JS errors.
+  **PROJECT COMPLETE: all 12 planned pages built, verified, and consistent.**
 - 2026-11-02: B6 code map + reference committed (last content batch): `code/central-files` (19 central
   files, selected by import-graph centrality and cross-page citation frequency, grouped by folder, no
   quiz — exempt) and `reference/config-and-deployment` (env vars, `cordis.patch.yml`, the
@@ -130,8 +139,7 @@ Newest first.
 
 ## Next step
 
-Run the final pass F: a site-wide consistency check (terminology, cross-links, nav completeness, glossary
-coverage) and a full build + Playwright check, then report completion to the user.
+None. Project complete.
 
 ## Questions for the user
 
@@ -152,3 +160,4 @@ coverage) and a full build + Playwright check, then report completion to the use
 | 2026-11-02 | B4 execution | executor-and-worker-sessions, effects-and-store + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (resume/restart condition). |
 | 2026-11-02 | B5 prompts and panel | prompts-and-skills, panel-and-management-api + 2 diagrams + 6 glossary terms. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (assignment-note resend condition). |
 | 2026-11-02 | B6 code map + reference | central-files, config-and-deployment. 0 build errors, 0 warnings, all 12 pages exist. Supervisor spot-check: 0 defects. |
+| 2026-11-02 | Phase F consistency pass | Checked terminology, cross-page facts, nav, glossary, links across all 12 pages. 1 glossary-coverage fix (dsh-profile/dsh-bundle not linked). 0 other defects. |
