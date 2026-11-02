@@ -7,19 +7,40 @@ Only the supervisor (or a fact checker, on the supervisor's order) edits this fi
 Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed by a fact checker; [S] = checked by the supervisor.
 
 ## Version
-- <Project> commit <full sha> (<date>). History: <N> commits.
-- Submodules: <list>; <checked out or not>. Out of scope: <list>.
+- dsh-superagent commit 6337fc823ce20251c8de8085948165c81aaa701e (2026-10-31). History: 1 commit (squashed
+  for publication, README.md:3-5 discloses this). [S]
+- Submodules: none. Out of scope: tests/, locale/, full Source-skill prompt text (see brief-writer.md).
 
-## <Topic>
-- <fact> (<path>:~<line>).
-- Mark values that are not in the repo as INFERRED, and say where they come from.
-- Mark comments or docs that disagree with the code: "the comment at <path> ~<line> says X; the code does Y".
+## Survey correction
+- `scripts/dsh-superagent` is a **250-line Python script** (`#!/usr/bin/env python3`), NOT a shell script.
+  The Phase 0 survey called it a "shell wrapper" / "shell script" — that is wrong. It still does
+  start/stop/status/restart via tmux; only the implementation language was misreported. [S], confirmed
+  2026-11-02 directly (`head -1 scripts/dsh-superagent`, `file scripts/dsh-superagent`). This did not reach
+  plan.md or any page yet — B6 (reference/config-and-deployment) must say "Python script", not "shell
+  script".
+
+## Ticket / stage machine (B1, confirmed by supervisor spot-check 2026-11-02)
+- `ticketStage()` (src/core/stage.ts:9-21) checks in order: ended(10) → person/delivery(11) →
+  person/answer(12) → person/review(15) → person/blocked-or-failed(17, gated by `waitsForPerson`,
+  model.ts:349-353) → working/queued(18) → idle(19) → working fallback(20). Verified line-by-line. [S]
+- `Ticket` (model.ts:277-308) has no stored stage/status field. [S]
+- `Strength` (model.ts:96) has exactly 2 values: `'explicit' | 'inferred'`. "Not admitted" is
+  `GateResult`'s `admissible: false` branch (ports.ts:7), not a third Strength value. [S]
+- `AssignmentState` (model.ts:211) = `'pending' | 'running' | 'ended'`. `newAssignment()` always starts
+  `pending` (tickets.ts:381-386); `endAssignment()` sets `ended` (tickets.ts:387-390). [S]
+- `Tickets.create()` (tickets.ts:37-54) builds the Ticket, adds the first Assignment, subscribes to every
+  Thread of the Eval's Triggers, and starts the Executor — all in one call. [S]
+- A Subscription's fan-out (`Intake.receive`, intake.ts:34-52) adds the Trigger as an Input directly, no
+  new Eval. Only a Trigger no Ticket owns is queued for Eval (intake.ts:58). `wake()` is then called on
+  every reached Ticket (intake.ts:59) but no-ops on a live one (tickets.ts:254's early return). [S]
+- `WorkerSlots.reserve()` (dsh.ts:192-194) allows one extra slot beyond `maxWorkers` only when
+  `by === 'person'`. `maxWorkers` itself is read from `settings().executor.maxWorkers` (dsh.ts, inside the
+  WorkerSlots constructor). [S]
+- A `dropped` Report ends the Ticket, same as a `ready` one with no pull request to wait for
+  (assignments.ts:128-132). [S]
 
 ## Conflicts and resolutions
-- <date>: <source A> says X; <source B> says Y. Resolution: <which one the pages use, and why>.
+(none yet)
 
-## Added after B1 (<date>)
-- ...
-
-## Added after the B1 fact check (<date>)
-- ...
+## Added after B1 (2026-11-02)
+- See "Ticket / stage machine" and "Survey correction" above.

@@ -1,11 +1,13 @@
-# <Project> Explained — Writer's guide
+# dsh-superagent Explained — Writer's guide
 
-> Template note: replace `<Project>`, `<project>`, the sample page names, the vocabulary table (section 6)
-> and the out-of-scope list (section 7, rule 5) for your project. Keep the rest.
+This guide is for everyone who writes pages, glossary entries or diagrams for the site "dsh-superagent
+Explained", which explains the `dsh-superagent-prototype` codebase: a proactive coding agent for one
+GitHub repository, packaged as a DSH (DeepSeek Harness) bundle.
 
-This guide is for everyone who writes pages, glossary entries or diagrams for the site.
-Read all of it before you write your first page. Then copy the sample page
-`src/concepts/example-concept.html` (replace it with the Phase 1 reference page) — it uses every part of this guide.
+Read all of it before you write your first page. Then read the reference sample page,
+`src/concepts/ticket-lifecycle.html` — it uses every part of this guide, including the site's single
+interactive visual. **Before you write anything else, read `notes/brief-writer.md` in full. It is
+binding and it overrides the skill's default two-depth page pattern (section 4 below, and section 13).**
 
 Contents
 
@@ -21,6 +23,7 @@ Contents
 10. Diagrams
 11. Build errors and warnings
 12. Checklist before you hand in
+13. Single-depth pages and the sibling site (binding override of section 4)
 
 ---
 
@@ -131,6 +134,10 @@ to headings; write `id="..."` yourself only when you link to the heading.
 
 Starter files: `src/_templates/concept.html`, `src/_templates/tour.html`.
 
+> **Binding override (section 13).** This site uses the skill's single-depth pattern, not the
+> two-depth pattern below: step 7 is one compact "More detail" section, not a full "Deep dive". Read
+> section 13 before you write step 7 of any page.
+
 ### 4.1 Concept and basics pages (sections `concepts`, `learn`)
 
 Use these parts in this order. Use the `<h2>` texts exactly as shown, so every page looks the same.
@@ -141,27 +148,25 @@ Use these parts in this order. Use the `<h2>` texts exactly as shown, so every p
 | 2 | Before you read | front matter `prerequisites:` (automatic) |
 | 3 | In one sentence | `<x-sentence>` — max 25 words |
 | 4 | **The idea** | `<h2>The idea</h2>` — plain explanation, then one everyday comparison (analogy). Say where the analogy stops being true. |
-| 5 | **The picture** | `<h2>The picture</h2>` + `<x-diagram>` + 2-3 sentences on how to read it |
-| 6 | **In the code** | `<h2>In the code</h2>` — `<h3>Step N: ...</h3>` sub-sections, each with real excerpts (`<x-code>`) and citations (`{{cite}}`). Basics pages (`learn/`) use `<h2>In <Project></h2>` instead: a short section at the end with 1–3 cited pointers into the code and links to concept pages. |
-| 7 | **Deep dive** | `<h2>Deep dive</h2>` + one or more `<x-deepdive>` blocks. FULL detail (see below). |
+| 5 | **The picture** | `<h2>The picture</h2>` + `<x-diagram>` (or the site's one `<x-viz>`) + 2-3 sentences on how to read it |
+| 6 | **In the code** | `<h2>In the code</h2>` — `<h3>Step N: ...</h3>` sub-sections, each with real excerpts (`<x-code>`) and citations (`{{cite}}`). Basics pages (`learn/`) use `<h2>In dsh-superagent</h2>` instead: a short section at the end with 1–3 cited pointers into the code and links to concept pages. |
+| 7 | **More detail** (single-depth override, section 13) | `<h2>More detail</h2>` — a short prose section: how the pieces fit together, what calls what, in what order, and the config knobs that change the behaviour. One `<x-deepdive>` block is enough, for one side topic that does not fit the prose (a table, or one narrow technical point). Do NOT write the skill's full multi-block "Deep dive" (shapes/types, a worked example with numbers, an error-path table, line-by-line reading) — that is future work (plan.md §15). |
 | 8 | **What can go wrong** | `<h2>What can go wrong</h2>` — failure modes with citations, then **Why it matters.** |
 | 9 | Check yourself | `<x-quiz>` with 3-5 questions: mix easy, medium and hard. The heading is automatic. |
 | 10 | Related pages, next/previous | front matter `related:` (automatic) |
 
-**What goes in a deep dive.** The reader studies with this site. A deep dive must give the full
-technical detail, not a longer summary:
+**What a "More detail" section covers (single-depth; see section 13).** Prose first, then at most one
+short `<x-deepdive>`:
 
-- exact shapes, types and sizes (for example `int32 [num_tokens, 4]`, or a struct layout), with a worked example with real numbers;
-- memory layouts (row-major, packed, padded; who writes which byte);
-- the algorithm step by step, as a numbered list;
-- edge cases and error paths (what raises, what only warns);
-- related environment variables and config fields, with defaults and the line that reads them;
-- design trade-offs (why this way, what the alternative costs), only if the code or docs support it;
-- numbers from `doc/` (cite the line);
-- long code read line by line: show the excerpt, then a numbered list "Line 13. ...".
+- how the pieces named in "In the code" fit together: what calls what, and in what order;
+- the config knobs that change the behaviour, with the file:line that reads them;
+- a one-line pointer to the matching `docs/000`-`docs/008` file for anything that goes deeper, instead
+  of duplicating it (brief-writer.md).
 
-Split long detail into several `<x-deepdive>` blocks, one topic each, with a clear title. A deep dive
-may contain code, tables, callouts and lists. Do not put a quiz inside a deep dive.
+Do not paste long code excerpts or read code line by line. A short `<x-code>` excerpt is fine when a few
+lines make the point; prefer saying what the code does in prose, backed by `{{cite}}`. The build still
+warns if a template-section page has no `<x-deepdive>` at all, so keep the one short block even on a
+page that otherwise reads as plain prose.
 
 ### 4.2 Tours (section `tours`)
 
@@ -425,15 +430,36 @@ technical names stay as they are.
 
 **Technical words.** Technical names and well-known terms of the domain are allowed, but you must
 define each one at its first use on the page, and link it with `{{term}}`. Use the same word for the
-same thing on every page. Fill in this table for your project (the rows are examples from an ML
-inference engine; replace them):
+same thing on every page. The glossary (`src/glossary/core.json`) is the source of each definition;
+this table is only which word to use.
 
 | Use | Do not use (for this meaning) |
 |---|---|
-| request (what a user sends) / sequence (the engine object for it) | job, query, prompt (for the object) |
-| step (one main-loop iteration) | iteration, tick, round |
-| rank (one process) / device (one GPU) | worker, node, card (for these meanings) |
-| block (one cache block) | page, chunk (for this meaning) |
+| Source (a stream of events, one plugin kind + one instance) | provider, connector, integration |
+| Trigger (one immutable event from a Source) | event (alone), message (for the domain object) |
+| Thread (Triggers in time order; the unit an Eval runs on) | conversation, channel (see Channel), topic |
+| Channel (the write side of a Thread) | thread (for the write side), destination |
+| Policy (the versioned rules plus each Source's part) | config, settings (for the rules specifically) |
+| Eval (the gate + assessment judgement on a batch of Triggers) | evaluation (as a noun for the process; "Eval" is the term), review |
+| Decision (the result of an Eval: accept / stop / ignore / unavailable) | outcome, verdict |
+| Mandate (what an accept grants: scope, strength, Policy version) | permission, authorization (as a noun for the object), grant |
+| strength (explicit / inferred / not admitted) | confidence, trust level |
+| accept mode (`off` / `observe` / `auto`) | mode (alone) |
+| Ticket (a unit of authorized work) | task, job, issue (GitHub's own word is "Issue"; keep them distinct) |
+| stage (`TicketStage`: `idle`, `working` (plain or `queued`), or `person` with an action `delivery` / `answer` / `review` / `blocked` / `failed`) | status, state (for the Ticket's own notion; "state" stays for `Assignment.state` and `ReportState`) |
+| Assignment (the binding of a Ticket to one Executor instance) | run, attempt |
+| Subscription (the many-to-many relation between Tickets and Threads) | follow (as a noun), watch |
+| Effect | side effect (prose only; "Effect" is the queued unit), task (see Ticket) |
+| Executor (the port that runs Assignments: Session + directory) | worker (reserve "worker" for the Executor Session and its `worker-<ticket id>` id, never for the Executor port itself) |
+| worker slot (`WorkerSlots`, the executor's concurrency unit) | thread (ambiguous with domain Thread), process |
+| Report (what an Assignment reports back: progress / waiting / ready / blocked / failed / dropped) | status (see stage), update |
+| Outbox (the Engine's Channel-write port and its receipts) | queue (alone), mailbox |
+
+**Role names.** The main Session is `orchestrator` in code and prompts; call it "the main Session" in
+prose, after the sibling site's own session vocabulary ({{link learn/what-this-is}}). An Executor
+Session is `worker` in code and prompts; call it "the Executor Session" or "the worker" (both are used
+on this site, since `src/executor/dsh.ts` uses `worker` throughout) but never call a Ticket itself a
+"worker".
 
 **Word substitutions**
 
@@ -478,9 +504,18 @@ numbers over an abstract sentence.
    an `__init__.py` dispatches kernels. It was empty. Another file dispatched.)
 3. Cite the **narrowest** line range that proves the claim.
 4. Mark each simplification with `<x-simplified>` and say what the full truth is.
-5. **Out-of-scope code** (list it here: vendored libraries, git submodules that are not checked out,
-   third-party frameworks). Explain only how <Project> calls them (arguments, shapes, which
-   function, when). Do not describe their insides.
+5. **Out-of-scope code.** Full pages cover `src/`, `prompts/`, `skills/`, `cordis.patch.yml` and
+   `scripts/dsh-superagent`. These are out of scope:
+   - `tests/` — mention once per page at most, as "the project has an unusually large test suite"
+     (65 files / 14,960 lines, nearly as large as production code). Do not walk through test files.
+     `docs/007-architecture.md`'s own test table is the index; link to it instead of reproducing it.
+   - `locale/` (`locale/en.json`, `locale/zh.json`) — mention once, as the bundled i18n source that
+     `src/client/locales.ts` reads; not a page of its own.
+   - The two bundled Source skills' exact prompt text, `skills/dsh-superagent-github/SKILL.md` and
+     `skills/dsh-superagent-feishu/SKILL.md` — `{{cite}}` or `{{link}}` the file, and summarize its
+     purpose in your own prose. Do not reproduce the prompt text in full on a page.
+   - DSH (DeepSeek Harness) itself and Cordis — the sibling site's territory (section 13). Describe
+     only how dsh-superagent calls them.
 6. Numbers from `doc/` and `README.md` are allowed; cite the line.
 7. **Comments in another language**: translate them when they help. Always say they are translated
    (`<x-tr>` does this automatically).
@@ -655,3 +690,45 @@ Warnings (the build still succeeds, `--strict` turns them into errors):
 - [ ] Your diagram passes `instructions-svg.md` section 11, and has `alt` text.
 - [ ] Interactive visuals: keyboard, touch, 390 px, light and dark mode checked; seeded; reset button.
 - [ ] You looked at the page in a browser at desktop and phone width (or the supervisor did).
+
+## 13. Single-depth pages and the sibling site
+
+This is an overview site, not a full study guide (plan.md §1-2). Two rules are binding for every page,
+and they override the skill's own defaults described elsewhere in this guide.
+
+**Single depth, not two.** Every concept page, basics page and the tour uses one depth, not the
+skill's usual two:
+
+1. A short beginner start: `<x-sentence>`, "The idea" with one analogy, "The picture" (a diagram or the
+   site's one `<x-viz>`).
+2. "In the code": short, cited, prose-first steps. Reading the actual code is a low priority for the
+   reader — do not paste long excerpts or read code line by line.
+3. One compact "More detail" section (section 4.1, step 7) in place of the skill's full "Deep dive".
+4. "What can go wrong", then `<x-quiz>`.
+
+Where the target repo's own `docs/000-philosophy.md` through `docs/008-cookbook.md` go deeper, end the
+page with one line and a citation pointing at the matching doc, instead of duplicating it. These docs
+read like a tutorial sequence; lean on them. Still cite the **code**, not the doc, for every factual
+claim — docs can be stale, the code cannot. The future work of adding full two-depth deep dives on top
+of this is deferred (plan.md §15); do not add it on your own.
+
+**Recap the sibling site, do not re-teach it.** `../deepseek-harness-explainer` (a separate build; link
+to it with a plain `<a>`, not `{{link}}`) already teaches the DSH/Cordis basics this project sits on:
+
+| Topic | Sibling page |
+|---|---|
+| Cordis plugins | `learn/plugins-and-cordis` |
+| Profiles and bundles | `learn/profiles-and-bundles` |
+| The turn/step/round session vocabulary | `learn/session-and-loop-vocabulary` |
+| Skills | `concepts/skills` |
+| Jobs and background work | `concepts/jobs-workflow-goal-plan` |
+
+If your page touches one of these, give it **one sentence and a link**, never a re-explanation of the
+mechanism. This site's job is only what dsh-superagent itself adds on top of DSH and Cordis: Source,
+Trigger, Thread, Policy, Eval, Ticket, Executor, Effects, the Panel. This rule binds every batch, not
+only `learn/what-this-is`.
+
+**The reference sample.** `src/concepts/ticket-lifecycle.html` is the Phase 1 reference page for every
+concept page that follows. It uses the single-depth pattern above, most of the tags in section 5, and
+carries the site's one interactive visual, the Ticket stage-machine stepper
+(`assets/viz/ticket-stage-stepper.js`). Copy its structure before you write your own page.

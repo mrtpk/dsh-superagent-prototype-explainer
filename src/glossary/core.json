@@ -1,19 +1,139 @@
 {
-  "_about": "General terms used on many pages. Owner: supervisor. Other writers: reuse these ids; do not redefine them. Each batch adds its own terms in src/glossary/<batch>.json.",
-  "kv-store": {
-    "term": "KV store",
-    "short": "A store that keeps values under keys. You put a value with a key, and get it back with the same key.",
-    "aliases": ["key-value store"],
-    "page": "learn/example-basics"
+  "_about": "General dsh-superagent domain terms (~20-25). Owner: supervisor (batch B1). Each batch adds its own extra terms in src/glossary/<batch>.json. Search this file before you add a term. Definitions follow docs/001-domain.md and docs/002-authorization.md, but every citation here points at the CODE, not the docs.",
+  "source": {
+    "term": "Source",
+    "short": "A stream of events. A Source kind is a reusable plugin; a Source instance is one configured kind, such as one GitHub repository.",
+    "long": "A kind declares its identity, configuration schema and health entries ({{cite src/sources/kind.ts:84-89}}). <code>SourceRegistry</code> holds the stored instances of each installed kind ({{cite src/sources/registry.ts:45}}).",
+    "aliases": ["Source kind", "Source instance"],
+    "page": "concepts/sources-and-triggers"
   },
-  "commit": {
-    "term": "commit",
-    "short": "One saved version of a git repository. A 40-character id names it. This site explains one pinned commit.",
-    "page": "index"
+  "trigger": {
+    "term": "Trigger",
+    "short": "One immutable event a Source produces, such as a GitHub comment or a Feishu message, with the Source's own metadata.",
+    "long": "{{cite src/core/model.ts:23-39}} defines the shape: every <code>Thread</code> it belongs to, its actor, whether a person wrote it, and whether it addressed the agent.",
+    "page": "concepts/sources-and-triggers"
   },
-  "citation": {
-    "term": "citation",
-    "short": "A link to a file and line in the code. Every claim about the code on this site has one.",
-    "page": "index"
+  "thread": {
+    "term": "Thread",
+    "short": "Triggers in time order. At most one Eval runs on a Thread at a time, and a Thread may carry several Tickets.",
+    "long": "{{cite src/core/model.ts:157-182}} is the aggregate: its Subscriptions, its running Eval (<code>evaluating</code>), and its queued Triggers.",
+    "page": "concepts/sources-and-triggers"
+  },
+  "channel": {
+    "term": "Channel",
+    "short": "The write side of a Thread: where a reply, acknowledgement or result goes back to the Source.",
+    "long": "{{cite src/core/model.ts:9}} is the type: a Source, a Thread and an address the Source's own format defines.",
+    "page": "concepts/sources-and-triggers"
+  },
+  "policy": {
+    "term": "Policy",
+    "short": "The versioned rules for who may start work, and each Source's own part of those rules.",
+    "long": "{{cite src/core/ports.ts:17-27}} is the port the Engine reads: a version, a gate, Mandate revalidation and the accept-mode check.",
+    "aliases": ["Policy version"],
+    "page": "concepts/policy-and-authorization"
+  },
+  "eval": {
+    "term": "Eval",
+    "short": "The judgement on a batch of Triggers: a gate layer, then an assessment, ending in a Decision.",
+    "long": "{{cite src/core/evals.ts:1}} is the part that runs it; {{cite src/core/model.ts:136-154}} is the Evaluation state it tracks on a Thread.",
+    "page": "concepts/policy-and-authorization"
+  },
+  "decision": {
+    "term": "Decision",
+    "short": "The result of an Eval: accept, stop, ignore, reopen or unavailable, with its reasons.",
+    "long": "{{cite src/core/model.ts:190-209}} is the shape, recorded on the Thread by <code>threadKey</code>.",
+    "page": "concepts/policy-and-authorization"
+  },
+  "mandate": {
+    "term": "Mandate",
+    "short": "What an accept grants: the strength, scope and Policy version a Ticket's work relies on. It never changes once set.",
+    "long": "{{cite src/core/model.ts:126-133}} is the shape. Only accept creates one; a person's stop withdraws it; failed revalidation revokes it ({{cite docs/002-authorization.md:129}}).",
+    "page": "concepts/policy-and-authorization"
+  },
+  "strength": {
+    "term": "strength",
+    "short": "How a Trigger was admitted: explicit, inferred, or not admitted (no Mandate at all).",
+    "long": "{{cite src/core/model.ts:96}} types the two Mandate-bearing values; {{cite src/core/ports.ts:7}}'s <code>GateResult</code> shows the third case as <code>admissible: false</code>, which carries no strength.",
+    "page": "concepts/policy-and-authorization"
+  },
+  "accept-mode": {
+    "term": "accept mode",
+    "short": "The Policy setting that controls inferred candidates: off, observe (assess but never accept) or auto (assess and accept).",
+    "long": "{{cite src/core/model.ts:103}} is the type. <code>Policy.admitsInferred</code> ({{cite src/core/ports.ts:24}}) checks it against the matched rules.",
+    "aliases": ["accept-mode"],
+    "page": "concepts/policy-and-authorization"
+  },
+  "ticket": {
+    "term": "Ticket",
+    "short": "A unit of authorized work. Only an Eval's accept creates one; it goes open to ended and sometimes back to open.",
+    "long": "{{cite src/core/model.ts:277-308}} is the aggregate: its Mandate, Channels, Assignments and Inputs.",
+    "page": "concepts/ticket-lifecycle"
+  },
+  "stage": {
+    "term": "stage",
+    "short": "An open Ticket's current wait: idle, working (plain or queued), or person (delivery, answer, review, blocked or failed).",
+    "long": "{{cite src/core/stage.ts:4-6}} is the type; {{cite src/core/stage.ts:8-21}}'s <code>ticketStage</code> computes it, row by row, from the Ticket's own stored facts.",
+    "page": "concepts/ticket-lifecycle"
+  },
+  "assignment": {
+    "term": "Assignment",
+    "short": "The binding of a Ticket to one Executor instance. A Ticket has several over time, one running at a time.",
+    "long": "{{cite src/core/model.ts:218-233}} is the shape: its state, its latest Report, and when Inputs last reached it.",
+    "page": "concepts/ticket-lifecycle"
+  },
+  "subscription": {
+    "term": "Subscription",
+    "short": "The many-to-many link between Tickets and Threads. A Trigger on a subscribed Thread reaches every live subscribed Ticket.",
+    "long": "{{cite src/core/model.ts:163-164}} holds the list on the Thread; {{cite src/core/tickets.ts:417-422}}'s <code>subscribe</code> adds to it, and {{cite src/core/intake.ts:34-48}} fans a Trigger out through it.",
+    "page": "concepts/ticket-lifecycle"
+  },
+  "effect": {
+    "term": "Effect",
+    "short": "One durable row in the side-effect queue: a launch, a delivery, a relay, a notice or a reply, run after its transaction commits.",
+    "long": "{{cite src/app/effects.ts:11-24}} lists the six kinds; {{cite src/app/effects.ts:42-46}} describes the queue itself.",
+    "page": "concepts/effects-and-store"
+  },
+  "executor": {
+    "term": "Executor",
+    "short": "The port that runs Assignments: one Executor Session and one directory per Ticket.",
+    "long": "{{cite src/core/ports.ts:59-69}} is the port the Engine calls; {{cite src/executor/dsh.ts:207}}'s <code>DshExecutor</code> is the only implementation in this repository.",
+    "page": "concepts/executor-and-worker-sessions"
+  },
+  "worker-slot": {
+    "term": "worker slot",
+    "short": "One unit of the Executor's concurrency limit. A Ticket holds one while its worker launches, runs a turn, or finishes background work.",
+    "long": "{{cite src/executor/dsh.ts:171-199}}'s <code>WorkerSlots</code> tracks them, with one extra slot reserved for a person's message.",
+    "page": "concepts/executor-and-worker-sessions"
+  },
+  "report": {
+    "term": "Report",
+    "short": "What an Assignment reports back to its Ticket: progress, waiting, ready, blocked, failed or dropped.",
+    "long": "{{cite src/core/model.ts:216}} types the states; {{cite src/core/assignments.ts:11-20}}'s <code>WorkerReport</code> is what a worker or the Executor itself sends in.",
+    "page": "concepts/ticket-lifecycle"
+  },
+  "outbox": {
+    "term": "Outbox",
+    "short": "The Engine's port for Channel writes: it keeps a receipt for every outgoing message and sends it as durable work.",
+    "long": "{{cite src/core/ports.ts:76-83}} is the port; {{cite src/app/outbox.ts:22-52}}'s <code>Outbox</code> class is the implementation, backed by a <code>reply</code> Effect.",
+    "page": "concepts/effects-and-store"
+  },
+  "management-api": {
+    "term": "Management API",
+    "short": "The local HTTP API the panel uses, and that scripts and agents can also call, under one path prefix.",
+    "long": "{{cite src/app/http.ts:230-234}} registers the <code>/orchestrator/api/</code> prefix with a same-origin check.",
+    "aliases": ["orchestrator API"],
+    "page": "reference/config-and-deployment"
+  },
+  "dsh-bundle": {
+    "term": "DSH bundle",
+    "short": "How dsh-superagent ships: a package with a Cordis patch file that a DSH profile loads, not a standalone program.",
+    "long": "{{cite package.json:30-33}} points <code>dsh.bundle.patch</code> at {{cite cordis.patch.yml:4-6}}, which inserts the plugin.",
+    "page": "learn/what-this-is"
+  },
+  "dsh-profile": {
+    "term": "DSH profile",
+    "short": "A named DeepSeek Harness configuration and runtime. dsh-superagent runs in its own profile, separate from a person's own.",
+    "long": "{{cite scripts/dsh-superagent:2}} names the default profile, <code>superagent</code>; {{cite scripts/dsh-superagent:30-32}} keeps each profile's control files apart.",
+    "page": "learn/what-this-is"
   }
 }

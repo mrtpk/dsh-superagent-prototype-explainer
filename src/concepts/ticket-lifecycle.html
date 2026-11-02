@@ -1,0 +1,71 @@
+---
+title: The Ticket lifecycle: stages, Assignments and Subscriptions
+nav_title: The Ticket lifecycle
+level: Intermediate
+prerequisites: learn/what-this-is, concepts/sources-and-triggers
+related: concepts/policy-and-authorization, concepts/executor-and-worker-sessions, tours/life-of-a-github-mention
+summary: A Ticket moves through a fixed set of stages as its Assignments and Subscriptions change. This page follows one Ticket from accept to end, with the stage machine's own file and lines.
+scripts: viz/ticket-stage-stepper.js
+---
+<x-sentence>An accepted {{term ticket}} moves through a fixed set of {{term stage | stages}}, computed fresh each time from its stored {{term assignment | Assignments}} and reports.</x-sentence>
+
+<h2>The idea</h2>
+<p>An open {{term ticket | Ticket}} keeps no stored status field. {{cite src/core/stage.ts:9-21}}'s <code>ticketStage()</code> computes one fresh each time. It reads facts the Ticket already stores: an open Attention question, its latest {{term assignment | Assignment}}'s state, and its latest {{term report | Report}}.</p>
+<p><strong>An everyday comparison.</strong> Think of a help-desk ticket with a status field someone sets by hand: "open", "waiting on customer", "closed". The comparison stops here. dsh-superagent's <code>Ticket</code> type has no such field ({{cite src/core/model.ts:277-308}}). Its stage is always derived, never stored, so it can never drift out of sync with the facts behind it.</p>
+
+<h2>The picture</h2>
+<x-diagram name="b1_ticket_anatomy" alt="Two panels. Panel 1: three boxes, Mandate, Ticket and Assignment array, with an arrow 'accept creates' from Mandate to Ticket, and an arrow 'holds' from Ticket to Assignment array. Panel 2: three boxes, Source to Trigger, Thread, and Ticket with an Input, connected by arrows labelled trigger.threads and fan-out." caption="Figure: a Ticket refers to one Mandate and owns a growing list of Assignments (panel 1); a later Trigger reaches it as a new Input through its Thread's Subscription, with no new Eval (panel 2)." />
+<p>Read each panel left to right. Panel 1 shows what an accept decision builds. Panel 2 shows how a Subscription later delivers a Trigger as a new Input. The legend under the diagram names each colour's role.</p>
+
+<x-viz id="ticket-stage-stepper" title="Step through the Ticket stage table" caption="Click a stage number, or press Tab and Enter. The order reads as a lifecycle (idle, queued, working, then a person-needed stage), not the code's own top-to-bottom check order; each card names the exact line it comes from." />
+
+<h2>In the code</h2>
+
+<h3>Step 1: an accept creates the Ticket, its Mandate and its first Assignment</h3>
+<p>{{cite src/core/tickets.ts:32-38}}'s <code>Tickets.create()</code> builds the Ticket from the Eval's batch of Triggers. It collects the Channels of those Triggers ({{cite src/core/tickets.ts:45-48}}), then adds one pending Assignment before saving ({{cite src/core/tickets.ts:49-51}}).</p>
+<x-code file="src/core/tickets.ts" lines="381-386" caption="A new Assignment always starts pending. The Executor reports it running once its Session actually launches." />
+<p>The Ticket then subscribes to every Thread of the Eval's Triggers ({{cite src/core/tickets.ts:52}}) and asks the {{term executor | Executor}} to start that Assignment ({{cite src/core/tickets.ts:54}}).</p>
+
+<h3>Step 2: the stage machine reads what the Ticket already has</h3>
+<p>{{cite src/core/stage.ts:9-21}} checks conditions in a fixed order and returns the first match, exactly as the panel-label table of {{cite docs/003-execution.md:9-18}} lists them.</p>
+<x-code file="src/core/stage.ts" lines="9-21" highlight="10,17,18" caption="The first matching row wins: ended, then person/delivery and person/answer, then review, then blocked or failed, then queued, then idle, then the Working fallback." />
+<p>Line 17 is the one row that reads a second function, <code>waitsForPerson()</code> ({{cite src/core/model.ts:349-353}}). It stays true only until a newer human message arrives. That is why a human reply lifts a Ticket off "Blocked" or "Failed".</p>
+
+<h3>Step 3: an Assignment moves from pending to running to ended</h3>
+<p>{{term assignment | Assignment}} has exactly three states ({{cite src/core/model.ts:211}}). <code>Assignments.started()</code> marks one running once its Executor Session actually launches ({{cite src/core/assignments.ts:34-38}}); <code>Tickets</code> itself ends one directly, such as on a retry ({{cite src/core/tickets.ts:387-390}}).</p>
+
+<h3>Step 4: a Subscription delivers later Triggers as Inputs, with no new Eval</h3>
+<p>{{cite src/core/intake.ts:34-48}} fans a stored Trigger out to every Ticket subscribed to one of its Threads. For each one reached, {{cite src/core/intake.ts:49-52}} adds the Trigger as an Input directly. {{term subscription | Subscription}} is the Thread's own list of subscribed Tickets ({{cite src/core/tickets.ts:417-422}}). A message on a subscribed Thread reaches a Ticket this way with no Eval and no Decision.</p>
+<p><code>Intake.receive()</code> then calls <code>wake()</code> on every reached Ticket ({{cite src/core/intake.ts:59}}). On a live Ticket this does nothing: <code>wake()</code> returns at once when the Ticket is not ended ({{cite src/core/tickets.ts:254}}). On an ended one, a person's message resumes it under the unchanged Mandate.</p>
+<x-note title="A context-only Subscription grants nothing"><p>An Executor can follow a Thread for context without authority. Its messages still reach the Ticket, but grant it nothing and resume no ended Ticket ({{cite src/core/model.ts:165-169}}).</p></x-note>
+
+<h2>More detail</h2>
+<p>The stage machine, the Assignment lifecycle and Subscriptions meet at one shared field: the Ticket's latest Report. A worker's Report sets <code>assignment.report</code> directly ({{cite src/core/assignments.ts:122}}), and that single field is almost everything {{cite src/core/stage.ts:9-21}} reads to choose between Working, Awaiting review, Blocked and Failed. The same report decides whether the Ticket ends. A <code>ready</code> Report with no pull request to wait for ends it as completed; a <code>dropped</code> Report ends it too ({{cite src/core/assignments.ts:128-132}}).</p>
+<p>One config knob changes how long a Ticket waits in "Queued": the Executor's concurrency limit, <code>maxWorkers</code>. A worker slot reads it when reserved ({{cite src/executor/dsh.ts:229-230}}). A person's message or a status request may use one slot beyond that limit ({{cite src/executor/dsh.ts:192-194}}). So new proactive work can never block someone already talking to a Ticket.</p>
+<x-deepdive title="Why retry and resume never create a new Ticket">
+<p>Only an accept decision creates a Ticket ({{cite src/core/tickets.ts:32-38}}). <code>retry()</code> ends the stalled Assignment and starts a fresh one on the same Ticket, Session, directory and branch ({{cite src/core/tickets.ts:168-180}}). <code>wake()</code> resumes an ended Ticket when a person's message arrives. It deletes the stored <code>ended</code> fact and starts a new Assignment, still under the Mandate the original accept granted ({{cite src/core/tickets.ts:252-270}}). Neither path asks Eval for a Decision, since nothing new needs authorizing.</p>
+</x-deepdive>
+<p>For the stage table's exact panel labels and the delivery-retry timings this page leaves out, see the repository's own {{cite docs/003-execution.md}}.</p>
+
+<h2>What can go wrong</h2>
+<x-warning title="A dropped Report ends the Ticket too, not only a ready one"><p>Check the Report state before assuming "no pull request" means nothing happened. <code>Assignments.report()</code> ends the Ticket on a <code>dropped</code> Report exactly as it does on a completing <code>ready</code> Report ({{cite src/core/assignments.ts:128-132}}).</p></x-warning>
+<ul>
+  <li><strong>"Queued" and "Waiting for a Trigger" look similar but are not the same stage.</strong> Queued means the Ticket has no Assignment yet, or only a pending one ({{cite src/core/stage.ts:18}}). Idle means the latest Assignment already ended, or its last Report was "waiting" ({{cite src/core/stage.ts:19}}). Confusing the two misreads whether a worker slot is in use.</li>
+</ul>
+<x-simplified><p>The stepper above leaves out the stage table's first row, "person / delivery" ({{cite src/core/stage.ts:11}}). It also leaves out the exact retry backoff timings. See the repository's own {{cite docs/003-execution.md}} for both.</p></x-simplified>
+<p><strong>Why it matters.</strong> Reading the wrong stage can make a stalled Ticket look fine, or a healthy one look stuck, which delays a person's retry.</p>
+
+<x-quiz>
+  <x-q level="easy">Does a Ticket store its own stage as a field, the way a help-desk ticket usually does?
+    <x-a><p>No. <code>Ticket</code> has no stage field ({{cite src/core/model.ts:277-308}}); <code>ticketStage()</code> computes it fresh every time from the Ticket's stored facts ({{cite src/core/stage.ts:9-21}}).</p></x-a>
+  </x-q>
+  <x-q level="easy">What lifts a Ticket off "Blocked" or "Failed"?
+    <x-a><p>A newer human message. <code>waitsForPerson()</code> stays true only until one arrives after the latest Report ({{cite src/core/model.ts:349-353}}, read by {{cite src/core/stage.ts:17}}).</p></x-a>
+  </x-q>
+  <x-q level="medium">Does a Subscription's fan-out trigger a fresh Eval on the Ticket it reaches?
+    <x-a><p>No. {{cite src/core/intake.ts:34-48}} adds the Trigger straight onto the Ticket as an Input; only a Trigger that no Ticket's worker decides is queued for Eval ({{cite src/core/intake.ts:58}}).</p></x-a>
+  </x-q>
+  <x-q level="hard">Why do <code>retry()</code> and <code>wake()</code> never create a new Ticket, even though each starts a new Assignment?
+    <x-a><p>Only an accept decision creates a Ticket id ({{cite src/core/tickets.ts:32-38}}). <code>retry()</code> starts a new Assignment on the same Ticket ({{cite src/core/tickets.ts:168-180}}). <code>wake()</code> resumes an ended Ticket under its unchanged Mandate, with no new Eval or Decision ({{cite src/core/tickets.ts:252-270}}).</p></x-a>
+  </x-q>
+</x-quiz>
