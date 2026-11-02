@@ -90,6 +90,19 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   block/version system (`BLOCKS`: policy/eval/executor/source, plus `pause` via its own bypass method).
   Confirmed via `src/client/settings.tsx:23` and `src/client/deployment.tsx:77`. [S]
 
+## Code map and reference (B6, confirmed by supervisor spot-check 2026-11-02)
+- `GET models`'s model-picker consumer (`ModelField`, `src/client/settings-kit.tsx:74-82`) is imported by
+  BOTH `src/client/eval.tsx` and `src/client/execution.tsx` — it backs the Eval model field and the
+  Executor model field, not just one. [S]
+- `GithubConfigSchema` (`src/sources/github.ts:25`) is the GitHub Source kind's own `schema` field
+  (`github.ts:42`) and is parsed directly in `github.ts` itself (`:81`, `.partial().parse(stored)`), not
+  plugged into `SourceInstanceSchema`'s generic `config: z.record(...)` (`policy.ts:98`) at a shared
+  settings.ts validation point. Each Source kind re-validates its own stored config when it reads it; the
+  generic settings schema stays intentionally loose. [S]
+- `scripts/dsh-superagent` is confirmed (again, independently) a 250-line Python script
+  (`#!/usr/bin/env python3`); B6's `reference/config-and-deployment.html` states this correctly in an
+  `<x-warning>`, with no "shell script" language anywhere on the page. [S]
+
 ## Conflicts and resolutions
 (none yet)
 

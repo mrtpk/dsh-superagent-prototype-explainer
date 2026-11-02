@@ -1,8 +1,8 @@
 # dsh-superagent Explainer — Progress
 
 Last update: 2026-11-02
-Current phase: **Full build, in progress.** User approved the sample pages and said "build everything."
-B3, B4, B5 done. B6 and the final pass F remain.
+Current phase: **Full build done. Final pass F remains.** All 12 planned pages exist. 0 build errors, 0
+warnings, 0 "coming soon" placeholders left anywhere.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -12,9 +12,9 @@ Update it after every subagent finishes and after every user decision.
 | Phase | Status | Notes |
 |---|---|---|
 | 0 Plan approval | done (scaled-down scope) | plan.md §2, §11 |
-| 1 Foundation + samples | done | Stop point 2: waiting for user review |
-| Full build (plan §13) | not started | 12 pages total |
-| F Final pass | not started | |
+| 1 Foundation + samples | done | approved by user ("build everything") |
+| Full build (plan §13) | done | all 12 pages built, B1-B6 |
+| F Final pass | not started | consistency + full site check |
 
 ## Full build — batch status
 
@@ -24,8 +24,8 @@ Update it after every subagent finishes and after every user decision.
 | B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | 93bc333 |
 | B3 Domain core | done | done (supervisor, 0 defects) | c96fd30 |
 | B4 Execution | done | done (supervisor, 1 precision defect found and fixed) | 6352dd3 |
-| B5 Prompts and panel | done | done (supervisor, 1 precision defect found and fixed) | (next commit) |
-| B6 Code map + reference | not started | – | – |
+| B5 Prompts and panel | done | done (supervisor, 1 precision defect found and fixed) | cf1dcab |
+| B6 Code map + reference | done | done (supervisor, 0 defects) | (next commit) |
 
 ## USER INSTRUCTIONS
 
@@ -43,6 +43,17 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: B6 code map + reference committed (last content batch): `code/central-files` (19 central
+  files, selected by import-graph centrality and cross-page citation frequency, grouped by folder, no
+  quiz — exempt) and `reference/config-and-deployment` (env vars, `cordis.patch.yml`, the
+  `scripts/dsh-superagent` CLI, the Management API's full 25-route table, settings schemas; no quiz —
+  exempt). Got the Python-script correction right: an `<x-warning>` states plainly it is a 250-line Python
+  script, not shell. No new diagrams or glossary terms needed (all reused). build.py --strict: 0 errors, 0
+  warnings, all 12 planned pages exist, 0 "coming soon" anywhere on the site. Supervisor spot-checked 3
+  flagged claims (GET models' consumer is both the Eval and Executor model fields; GithubConfigSchema is
+  parsed directly in github.ts, not plugged into the generic settings.ts validation path; the Python-script
+  correction itself): all correct, 0 defects. Full-site Playwright pass, all 14 built pages at 1280/390px:
+  0 overflow, 0 JS errors. **Full build complete. Only the final consistency pass F remains.**
 - 2026-11-02: B5 prompts and panel committed: `concepts/prompts-and-skills` (prompt assembly/precedence,
   bundled Source skills) and `concepts/panel-and-management-api` (React panel, tabs, Management API,
   settings/prompt versioning). 2 new diagrams (b5_prompt_assembly, b5_panel_and_api). 6 new glossary terms
@@ -119,8 +130,8 @@ Newest first.
 
 ## Next step
 
-Start B6 (code/central-files, reference/config-and-deployment — must say "Python script" for
-scripts/dsh-superagent, not "shell script", per the logged survey correction), then the final pass F.
+Run the final pass F: a site-wide consistency check (terminology, cross-links, nav completeness, glossary
+coverage) and a full build + Playwright check, then report completion to the user.
 
 ## Questions for the user
 
@@ -140,3 +151,4 @@ scripts/dsh-superagent, not "shell script", per the logged survey correction), t
 | 2026-11-02 | B3 domain core | sources-and-triggers, policy-and-authorization + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 0 defects. |
 | 2026-11-02 | B4 execution | executor-and-worker-sessions, effects-and-store + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (resume/restart condition). |
 | 2026-11-02 | B5 prompts and panel | prompts-and-skills, panel-and-management-api + 2 diagrams + 6 glossary terms. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (assignment-note resend condition). |
+| 2026-11-02 | B6 code map + reference | central-files, config-and-deployment. 0 build errors, 0 warnings, all 12 pages exist. Supervisor spot-check: 0 defects. |
