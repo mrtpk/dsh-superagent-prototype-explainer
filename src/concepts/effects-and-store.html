@@ -1,0 +1,59 @@
+---
+title: Effects and the Store: a durable queue, and one writer per state
+nav_title: Effects and the Store
+level: Intermediate
+prerequisites: concepts/executor-and-worker-sessions
+related: concepts/ticket-lifecycle, concepts/policy-and-authorization, tours/life-of-a-github-mention
+summary: Effects is the durable queue behind launches, deliveries and replies. Store is the one SQLite file behind it, where each kind of state has exactly one writer.
+---
+<x-sentence>A command enqueues an {{term effect | Effect}} inside its own transaction in the {{term store | Store}}, and it runs only after that transaction commits.</x-sentence>
+
+<h2>The idea</h2>
+<p>Every {{term effect | Effect}} is a row in the Store's <code>effect</code> table before it is a promise in memory ({{cite src/app/effects.ts:42-45}}). A command enqueues it inside its own transaction; the row only becomes visible to a handler once that transaction commits ({{cite src/app/effects.ts:60}}). {{term store | Store}} is the one SQLite database behind every Trigger, Thread, Ticket and Decision, the effect queue itself, and the {{term outbox | Outbox}}'s receipts ({{cite src/app/store.ts:46-50}}).</p>
+<p><strong>An everyday comparison.</strong> Think of a restaurant's order slip: the kitchen only starts cooking once the till has printed and saved the order, never before. The comparison stops at retries: a kitchen slip is not retried with a growing delay after a failed step, the way a stuck Effect is ({{cite src/app/effects.ts:140-144}}).</p>
+
+<h2>The picture</h2>
+<x-diagram name="b4_effects_and_store" alt="Two panels. Panel 1: three boxes, A command, an effect row in Store and a Handler, connected by arrows labelled in the transaction and after commit. Panel 2: two rows. Row 1: Engine, connected by an arrow labelled writes, to a box named Trigger, Thread, Decision, Ticket. Row 2: Outbox, connected by an arrow labelled writes, to a box named receipts, a Store table." caption="Figure: an effect becomes a row in Store before a handler ever sees it (panel 1); Engine is the only writer of the domain tables, and Outbox is the only writer of its own receipts (panel 2)." />
+<p>Read each panel left to right, then top to bottom. Panel 1 shows an Effect's life: a row in Store, then a handler, only after commit. Panel 2 shows who may write which table: Engine for the domain aggregates, Outbox for its own receipts.</p>
+
+<h2>In the code</h2>
+
+<h3>Step 1: enqueue writes a row; a handler reads it back after commit</h3>
+<p><code>enqueue()</code> upserts one row keyed by its kind and key, inside whatever transaction the caller already has open ({{cite src/app/effects.ts:60-66}}). The <code>effect</code> table's primary key is <code>(kind, key)</code>, so queuing the same waiting key again replaces its payload without changing its place in the queue ({{cite src/app/store.ts:80-82}}).</p>
+<x-code file="src/app/effects.ts" lines="60-66" caption="enqueue() only writes a row. The row's handler does not see it until the caller's transaction commits." />
+
+<h3>Step 2: each of the six kinds has exactly one handler</h3>
+<p><code>handle()</code> throws if a kind already has one ({{cite src/app/effects.ts:67-68}}). <code>assessment</code>, <code>launch</code>, <code>delivery</code>, <code>relay</code>, <code>notice</code> and <code>reply</code> are the six kinds ({{cite src/app/effects.ts:11-24}}). MasterAssessor runs <code>assessment</code>; {{link concepts/executor-and-worker-sessions | DshExecutor}} runs <code>launch</code> and <code>delivery</code>; Sessions runs <code>relay</code> and <code>notice</code>; and Outbox runs <code>reply</code> ({{cite src/app/assessment.ts:96}}, {{cite src/executor/dsh.ts:232-235}}, {{cite src/app/sessions.ts:104-105}}, {{cite src/app/outbox.ts:24}}).</p>
+
+<h3>Step 3: Engine and Outbox are each the sole writer of their own state</h3>
+<p>The Engine is the only part of the code that changes a Trigger, a Thread, a Decision, a Ticket or an Assignment ({{cite src/core/engine.ts:19-20}}). The Outbox is, in turn, the only writer of its own receipts; every other part of the code only reads them ({{cite src/app/store.ts:253}}).</p>
+
+<h2>More detail</h2>
+<p><code>atomic()</code> nests savepoints: a failure rolls back only its own level. Post-commit callbacks queued inside it wait for the outermost transaction to commit before any of them run ({{cite src/app/store.ts:136-139}}). <code>afterCommit()</code> is for an in-memory follow-up that need not survive a restart, such as cancelling a turn. A side effect that must survive a crash goes through <code>Effects</code> instead ({{cite src/app/store.ts:154-158}}). An effect kind's health entry reports an error once it fails three times in a row. The exception is <code>delivery</code>, whose failures show on the Ticket itself instead ({{cite src/app/effects.ts:6-7}}, {{cite src/executor/dsh.ts:234-235}}).</p>
+<x-deepdive title="What a restart recovers, and what it does not">
+<p>Rows waiting in the <code>effect</code> table survive a restart. <code>drain()</code> stops starting new ones and waits only for those already running, leaving the rest in SQLite for the next start ({{cite src/app/effects.ts:98-102}}). An <code>afterCommit()</code> callback is never written to SQLite, so a crash before it runs loses it for good. Runtime locks the state directory before it opens Store, so a second process cannot migrate or write the same database at the same time ({{cite src/app/runtime.ts:90-93}}).</p>
+</x-deepdive>
+<p>For the full list of effect kinds with their retry delays, and the Store's own read queries, see the repository's own {{cite docs/007-architecture.md:149-181}}.</p>
+
+<h2>What can go wrong</h2>
+<x-warning title="A failing delivery never raises the effect queue's own health alarm"><p>The <code>delivery</code> handler is registered with <code>quiet: true</code>. Three failed attempts in a row do not mark it as an error on the effect queue's health board. The failure shows on the Ticket itself instead ({{cite src/executor/dsh.ts:234-235}}).</p></x-warning>
+<ul>
+  <li><strong><code>afterCommit()</code> is not durable.</strong> A callback queued with it runs once, in memory. A crash before it runs loses it; only a row enqueued through <code>Effects</code> survives one ({{cite src/app/store.ts:154-158}}).</li>
+</ul>
+<x-simplified><p>This page covers only the domain aggregates and the outbox receipts. Settings and the key-value store have their own writers too. See the repository's own {{cite docs/007-architecture.md:153-160}} for the full list of Store's interfaces.</p></x-simplified>
+<p><strong>Why it matters.</strong> Treating every stored row as equally durable can hide a real gap. An in-memory follow-up queued with <code>afterCommit()</code> does not come back after a crash, while a queued Effect does.</p>
+
+<x-quiz>
+  <x-q level="easy">What makes an Effect durable, rather than just a promise sitting in memory?
+    <x-a><p>It is a row in the Store's <code>effect</code> table, written inside the caller's own transaction, before any handler runs it ({{cite src/app/effects.ts:42-45}}, {{cite src/app/effects.ts:60-66}}).</p></x-a>
+  </x-q>
+  <x-q level="easy">How many handlers can one effect kind have at a time?
+    <x-a><p>Exactly one. <code>handle()</code> throws if a kind already has a registered handler ({{cite src/app/effects.ts:67-68}}).</p></x-a>
+  </x-q>
+  <x-q level="medium">Which part of the code is the only one allowed to change a Ticket's Assignments?
+    <x-a><p>The Engine. It is the single writer of Triggers, Threads, Decisions, Tickets and Assignments ({{cite src/core/engine.ts:19-20}}).</p></x-a>
+  </x-q>
+  <x-q level="hard">The host crashes mid-turn. Which survives for the next start: a queued <code>launch</code> Effect, or an action scheduled with <code>afterCommit()</code>?
+    <x-a><p>The queued Effect. It is a row in SQLite that <code>drain()</code> leaves untouched for the next start ({{cite src/app/effects.ts:98-102}}). An <code>afterCommit()</code> callback exists only in memory and is lost with the crash ({{cite src/app/store.ts:154-158}}).</p></x-a>
+  </x-q>
+</x-quiz>

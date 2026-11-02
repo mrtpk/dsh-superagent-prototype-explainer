@@ -1,0 +1,63 @@
+---
+title: The Executor and worker Sessions: one Session per Ticket, a concurrency limit
+nav_title: The Executor and worker sessions
+level: Intermediate
+prerequisites: concepts/ticket-lifecycle
+related: concepts/effects-and-store, concepts/policy-and-authorization, tours/life-of-a-github-mention
+summary: DshExecutor gives every accepted Ticket one worker Session and one directory. WorkerSlots caps how many may run at once, with one slot kept for a person's message.
+---
+<x-sentence>The {{term executor | Executor}} gives every accepted {{term ticket | Ticket}} one worker Session and one directory, and a {{term worker-slot | worker slot}} caps how many may run at once.</x-sentence>
+
+<h2>The idea</h2>
+<p>{{term executor | Executor}} is the port the Engine calls to run a Ticket's work ({{cite src/core/ports.ts:59-69}}). It has three methods: <code>start()</code> launches a pending {{term assignment | Assignment}}, <code>deliver()</code> steers waiting Inputs to a running one, and <code>stop()</code> ends one. <code>DshExecutor</code> is the only Executor this repository registers ({{cite src/executor/dsh.ts:207}}). It gives each accepted Ticket one Session, named <code>worker-&lt;ticket id&gt;</code>, and one directory under the configured execution root ({{cite src/executor/dsh.ts:23-24}}).</p>
+<p><strong>An everyday comparison.</strong> Think of the Executor as a dispatcher who gives each job its own worker and its own workbench, never two jobs on one bench. The comparison stops at capacity. A dispatcher with a full floor turns new jobs away, but dsh-superagent only makes a new launch wait. It never turns away a person already talking to an existing worker.</p>
+<p>A worker Session follows the same turn/step/round vocabulary as any DSH Session; see the sibling site's <a href="../../../deepseek-harness-explainer/site/learn/session-and-loop-vocabulary.html">"Turn, step, round: the session vocabulary"</a>. What dsh-superagent adds on top is one dedicated worker Session per Ticket, and a limit on how many may run together.</p>
+
+<h2>The picture</h2>
+<x-diagram name="b4_executor_and_slots" alt="Two panels. Panel 1: three boxes, Ticket, DshExecutor and Session plus directory, connected by arrows labelled Executor port and one each. Panel 2: three blue boxes, Ticket A, B and C, holding the three normal worker slots, one amber box, Ticket D, using the extra slot for a person's message, and one neutral box, Ticket E, waiting for a free slot." caption="Figure: DshExecutor gives each Ticket one Session and directory (panel 1); WorkerSlots caps normal launches at maxWorkers, with one slot kept for a person's message (panel 2)." />
+<p>Read each panel left to right. Panel 1 shows what the Executor port gives a Ticket. Panel 2 shows the worker slots. Three normal slots are in use, one extra slot serves a person's message, and a new launch waits its turn.</p>
+
+<h2>In the code</h2>
+
+<h3>Step 1: the Executor port only queues the work</h3>
+<p><code>DshExecutor</code> does not launch or deliver anything itself. <code>start()</code> and <code>deliver()</code> each enqueue an {{term effect | Effect}}, covered in full on {{link concepts/effects-and-store}}, and return at once ({{cite src/executor/dsh.ts:264-268}}).</p>
+<x-code file="src/executor/dsh.ts" lines="264-268" caption="A launch or a delivery runs later, once the effect queue picks the row up." />
+
+<h3>Step 2: WorkerSlots reserves a slot before anything starts</h3>
+<p><code>WorkerSlots</code> tracks which Tickets currently hold a slot, and the configured maximum ({{cite src/executor/dsh.ts:171-180}}). <code>reserve()</code> adds a Ticket before a launch or a wake starts, and throws when none is free.</p>
+<x-code file="src/executor/dsh.ts" lines="192-196" highlight="194" caption="Line 194 is the one extra slot: used() may reach max() + 1 only when by is 'person'." />
+<p>A new launch always reserves with <code>by: 'launch'</code>, never <code>'person'</code> ({{cite src/executor/dsh.ts:274}}). Only a wake of an idle worker for a person's own message gets the extra slot. It then takes the next free slot ahead of a new launch ({{cite src/executor/dsh.ts:305-310}}). <code>executor.maxWorkers</code> defaults to 3 and can be set from 1 to 16 ({{cite src/policy.ts:93}}, {{cite src/limits.ts:6}}).</p>
+
+<h3>Step 3: a Ticket keeps its slot through background work</h3>
+<p>A Ticket's worker holds its slot while its turn runs. It also holds the slot while a shell job or a subagent it started keeps running after the turn ends ({{cite src/executor/dsh.ts:405-409}}). Shell jobs and subagents are DSH's own background-work mechanism; see the sibling site's <a href="../../../deepseek-harness-explainer/site/concepts/jobs-workflow-goal-plan.html">"Jobs, workflows, goals and plan mode"</a>. What dsh-superagent adds is a 30-minute limit: past it, a worker's shell jobs are killed and it reports waiting at its next turn ({{cite src/executor/dsh.ts:31-32}}, {{cite src/executor/dsh.ts:643-656}}).</p>
+<p>A handoff to a person, after a <code>ready</code> Report, a question, or a <code>blocked</code> or <code>failed</code> Report, frees the slot at once. Subagents stop, and any shell job, such as a server started for review, keeps running for the person without holding a slot ({{cite src/executor/dsh.ts:583-600}}).</p>
+
+<h2>More detail</h2>
+<p>The <code>launch</code> effect's own concurrency limit already excludes slots a wake is using ({{cite src/executor/dsh.ts:182-185}}), before <code>reserve()</code> claims the slot itself when the launch actually starts ({{cite src/executor/dsh.ts:232-233}}). One config knob changes how many Tickets run at once: <code>executor.maxWorkers</code>, read fresh every time <code>WorkerSlots</code> checks its limit ({{cite src/executor/dsh.ts:229-230}}). Raising it lets more launches run together. It never changes the one extra slot kept for a person's message: that stays exactly one beyond the limit ({{cite src/executor/dsh.ts:194}}).</p>
+<x-deepdive title="What ends a worker's turn, and what does not">
+<p>A turn ends once nothing runs for it in the background: no shell job, no subagent, and the Session itself is idle ({{cite src/executor/background.ts:89-96}}). A transient model-provider or network failure does not end an Assignment. The worker is told to go on, up to three tries ({{cite src/executor/dsh.ts:548-553}}), with a backoff that starts at 15 seconds and doubles each try ({{cite src/executor/dsh.ts:30}}, {{cite src/executor/dsh.ts:575}}). A host restart is different. It stops a running Assignment's shell jobs and subagents, then tells the Engine. The Engine restarts the Assignment with a recovery note. It skips the restart, and keeps the Session, only under two conditions. First, the last Report must already be <code>waiting</code>, <code>ready</code>, <code>blocked</code> or <code>failed</code>. Second, no later Input reached the worker after that Report ({{cite src/executor/dsh.ts:524-536}}, {{cite src/core/engine.ts:240-247}}, {{cite src/core/assignments.ts:83-90}}).</p>
+</x-deepdive>
+<p>For the exact stage table, the retry and restart rules, and every execution variable a worker reads, see the repository's own {{cite docs/003-execution.md}}.</p>
+
+<h2>What can go wrong</h2>
+<x-warning title="The extra worker slot is only for waking an existing worker, never for a new launch"><p>A brand-new Ticket's first launch always reserves with <code>by: 'launch'</code>. It can wait behind a full set of normal slots even when a person is involved. Only a wake of an idle worker for that person's own message gets the extra slot ({{cite src/executor/dsh.ts:192-194}}, {{cite src/executor/dsh.ts:274}}).</p></x-warning>
+<ul>
+  <li><strong>A Ticket that looks finished may still hold a slot.</strong> Background jobs and subagents keep a worker's slot for up to 30 minutes after its turn ends. Counting slots by open Tickets alone can overstate how many are actually free ({{cite src/executor/dsh.ts:31-32}}, {{cite src/executor/dsh.ts:405-409}}).</li>
+</ul>
+<x-simplified><p>This page leaves out the exact transient-retry backoff curve and the 10-minute workspace-prepare timeout. See the repository's own {{cite docs/003-execution.md}} for both.</p></x-simplified>
+<p><strong>Why it matters.</strong> Reading "3 of 3 slots used" as "3 Tickets are actively working" can be wrong. One of them may only be waiting on a background job after its own turn already ended.</p>
+
+<x-quiz>
+  <x-q level="easy">What two things does the Executor give every accepted Ticket?
+    <x-a><p>One Session, named <code>worker-&lt;ticket id&gt;</code>, and one directory under the execution root ({{cite src/executor/dsh.ts:23-24}}).</p></x-a>
+  </x-q>
+  <x-q level="easy">Name the three methods the Engine calls on an Executor.
+    <x-a><p><code>start()</code>, <code>deliver()</code> and <code>stop()</code> ({{cite src/core/ports.ts:59-69}}).</p></x-a>
+  </x-q>
+  <x-q level="medium">Can a Ticket's very first launch use the one extra worker slot kept for a person's message?
+    <x-a><p>No. A launch always reserves with <code>by: 'launch'</code>; only a wake of an idle worker for a person's own message may use the extra slot ({{cite src/executor/dsh.ts:192-194}}, {{cite src/executor/dsh.ts:274}}).</p></x-a>
+  </x-q>
+  <x-q level="hard">A worker's turn fails because of a provider timeout. Does its Assignment fail right away?
+    <x-a><p>No. A transient provider or network failure is retried up to three times ({{cite src/executor/dsh.ts:548-553}}), with a backoff starting at 15 seconds and doubling each try ({{cite src/executor/dsh.ts:30}}, {{cite src/executor/dsh.ts:575}}).</p></x-a>
+  </x-q>
+</x-quiz>

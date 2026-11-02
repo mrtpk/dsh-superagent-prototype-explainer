@@ -2,7 +2,7 @@
 
 Last update: 2026-11-02
 Current phase: **Full build, in progress.** User approved the sample pages and said "build everything."
-B3 done. B4-B6 and the final pass F remain.
+B3, B4 done. B5, B6 and the final pass F remain.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -22,8 +22,8 @@ Update it after every subagent finishes and after every user decision.
 |---|---|---|---|
 | B1 Foundation | done | done (supervisor, 0 defects in the page; 1 survey error found and logged) | fa6638e |
 | B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | 93bc333 |
-| B3 Domain core | done | done (supervisor, 0 defects) | (next commit) |
-| B4 Execution | not started | – | – |
+| B3 Domain core | done | done (supervisor, 0 defects) | c96fd30 |
+| B4 Execution | done | done (supervisor, 1 precision defect found and fixed) | (next commit) |
 | B5 Prompts and panel | not started | – | – |
 | B6 Code map + reference | not started | – | – |
 
@@ -43,6 +43,17 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: B4 execution committed: `concepts/executor-and-worker-sessions` (Executor port,
+  `DshExecutor`, `WorkerSlots`, background jobs) and `concepts/effects-and-store` (Effects queue, Store,
+  one-writer rules). 2 new diagrams (b4_executor_and_slots, b4_effects_and_store). 1 new glossary term
+  (`store`); all others reused. build.py --strict: 0 errors on both new pages; 3 pre-existing "coming soon"
+  warnings on not-yet-written B5 pages only. Supervisor spot-checked the resume/restart mechanic
+  (`Assignments.interrupted()`) and found the page's claim ("unless its last Report already settled it")
+  dropped a real condition (no later Input delivered after that Report) — fixed directly on the page, with
+  an added `{{cite}}`; rebuilt clean. 2 more claims spot-checked (Effects.enqueue upsert key, Engine as sole
+  writer): correct. Findings logged in notes/facts.md under "Execution (B4)". Playwright 1280/390px: 0
+  overflow, 0 JS errors; both sibling links (session-and-loop-vocabulary, jobs-workflow-goal-plan) resolve
+  HTTP 200.
 - 2026-11-02: B3 domain core committed: `concepts/sources-and-triggers` (Source, Trigger, Thread, Channel)
   and `concepts/policy-and-authorization` (Policy, Eval, Decision, Mandate, Strength, admission). 2 new
   diagrams (b3_source_channel, b3_gate_and_mandate). 1 new glossary term (`admission`); all others reused
@@ -97,8 +108,8 @@ Newest first.
 
 ## Next step
 
-Start B4 (concepts/executor-and-worker-sessions, concepts/effects-and-store), one subagent at a time,
-through B5, B6 and the final pass F.
+Start B5 (concepts/prompts-and-skills, concepts/panel-and-management-api), one subagent at a time,
+through B6 and the final pass F.
 
 ## Questions for the user
 
@@ -116,3 +127,4 @@ through B5, B6 and the final pass F.
 | 2026-11-02 | B1 foundation (template B) | STYLE.md, nav, glossary, concepts/ticket-lifecycle + stepper visual + 1 diagram. 0 build errors. Supervisor spot-check: 0 defects, 1 survey error found (see notes/facts.md). |
 | 2026-11-02 | B2 samples (template C) | home, learn/what-this-is, tours/life-of-a-github-mention + 2 diagrams. 0 build errors. Found a build.py gap (sibling links); supervisor fixed it. Supervisor spot-check: 0 defects. |
 | 2026-11-02 | B3 domain core | sources-and-triggers, policy-and-authorization + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 0 defects. |
+| 2026-11-02 | B4 execution | executor-and-worker-sessions, effects-and-store + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (resume/restart condition). |

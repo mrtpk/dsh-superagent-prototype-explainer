@@ -1,0 +1,9 @@
+{
+  "_about": "Extra domain terms for batch B4 (Execution: concepts/executor-and-worker-sessions, concepts/effects-and-store). Owner: B4 writer. Search core.json and the other batch files before adding a term here.",
+  "store": {
+    "term": "Store",
+    "short": "The one SQLite database that holds every domain aggregate, the effect queue and the Outbox's receipts.",
+    "long": "{{cite src/app/store.ts:46-50}} is the class; {{cite src/app/runtime.ts:90-93}} locks the state directory before Runtime opens it, so a second process cannot write the same database.",
+    "page": "concepts/effects-and-store"
+  }
+}

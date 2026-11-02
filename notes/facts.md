@@ -55,6 +55,20 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   follow-up" sits directly above `if (admission === 'explicit') return ...` — confirmed exact line numbers
   (B1's facts.md entry used "~204" for both; the comment is 203, the check is 204). [S]
 
+## Execution (B4, confirmed by supervisor spot-check 2026-11-02)
+- `Assignments.interrupted()` (assignments.ts:83-90): on a host restart, the Engine restarts the Assignment
+  with a recovery note UNLESS BOTH hold: the last Report's state is `waiting`/`ready`/`blocked`/`failed`,
+  AND no later Input was delivered to the worker after that Report (`busy` check, assignments.ts:87-88).
+  Only then does it keep the Session. The engine.ts:240-247 doc comment states this exactly; a page
+  claiming only "unless its last Report already settled it" drops the second condition and is imprecise —
+  fixed on `concepts/executor-and-worker-sessions.html` by the supervisor. [S]
+- `Effects.enqueue()` (effects.ts:60-65) upserts with `ON CONFLICT(kind, key)`, matching the `effect`
+  table's `PRIMARY KEY (kind, key)` (store.ts:80-82). `Effects.handle()` throws if a kind is registered
+  twice (effects.ts:67-68): exactly one handler per effect kind. [S]
+- `src/app/store.ts:49` (class doc): the Engine mutates domain aggregates inside atomic transactions;
+  Sources, views and the Outbox only read state or update their own records. Confirmed as a direct code
+  citation (engine.ts:19-20's own doc says the same), not only a docs/ claim. [S]
+
 ## Conflicts and resolutions
 (none yet)
 
