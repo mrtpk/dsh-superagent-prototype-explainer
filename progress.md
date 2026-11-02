@@ -1,8 +1,8 @@
 # dsh-superagent Explainer — Progress
 
 Last update: 2026-11-02
-Current phase: **Stop point 2.** Phase 1 (foundation + samples) is done and committed. Waiting for the
-user to review the sample pages before the full build (B3-B6, F) starts.
+Current phase: **Full build, in progress.** User approved the sample pages and said "build everything."
+B3 done. B4-B6 and the final pass F remain.
 
 This file is the memory of the project. A new session must be able to continue from it alone.
 Update it after every subagent finishes and after every user decision.
@@ -21,8 +21,8 @@ Update it after every subagent finishes and after every user decision.
 | Batch | Writer | Spot-check | Committed |
 |---|---|---|---|
 | B1 Foundation | done | done (supervisor, 0 defects in the page; 1 survey error found and logged) | fa6638e |
-| B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | (next commit) |
-| B3 Domain core | not started | – | – |
+| B2 Samples | done | done (supervisor, 0 defects; build.py fixed for sibling links) | 93bc333 |
+| B3 Domain core | done | done (supervisor, 0 defects) | (next commit) |
 | B4 Execution | not started | – | – |
 | B5 Prompts and panel | not started | – | – |
 | B6 Code map + reference | not started | – | – |
@@ -32,6 +32,8 @@ Update it after every subagent finishes and after every user decision.
 - 2026-11-02: Reuse the `deepseek-harness-explainer` scope defaults: single-depth pages, light
   supervisor-only spot-check (no separate fact-checker subagent), quizzes + one interactive visual, one
   subagent at a time. Approved as proposed, with the Ticket stage-machine stepper as the one visual.
+- 2026-11-02: "build everything" — approved the sample pages at stop point 2, run the full build (B3-B6, F)
+  without further review stops.
 
 ## RESUME NOTES
 
@@ -41,6 +43,15 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-02: B3 domain core committed: `concepts/sources-and-triggers` (Source, Trigger, Thread, Channel)
+  and `concepts/policy-and-authorization` (Policy, Eval, Decision, Mandate, Strength, admission). 2 new
+  diagrams (b3_source_channel, b3_gate_and_mandate). 1 new glossary term (`admission`); all others reused
+  from core.json. No interactive visual (none scoped for B3). build.py --strict: 0 errors on both new
+  pages; 6 pre-existing "coming soon" warnings on not-yet-written B4/B5 pages only. Supervisor spot-checked
+  5 claims directly against the code (assessor.request() runs for every strength; via:'listed' is produced
+  only by the one-time migration, not the live gate; via:'bot' is always inferred by the type; DecisionKind
+  declares 'reopen' but no code path produces it; the policy.ts:203-204 comment/check line numbers): all
+  correct, 0 defects. Findings logged in notes/facts.md under "Domain core (B3)".
 - 2026-11-02: B2 samples committed: home page (real system map, start-here, sibling-site mention), new
   `learn/what-this-is` (the site's one basics page, with the sibling-site recap), new
   `tours/life-of-a-github-mention` (13 stops, GitHub comment to Ticket end). 2 new diagrams
@@ -86,9 +97,8 @@ Newest first.
 
 ## Next step
 
-Waiting for the user to review the sample pages (index.html, learn/what-this-is, tours/life-of-a-github-mention,
-concepts/ticket-lifecycle with its stage-machine stepper). On approval, start B3 (concepts/sources-and-triggers,
-concepts/policy-and-authorization), one subagent at a time, through B4, B5, B6 and the final pass F.
+Start B4 (concepts/executor-and-worker-sessions, concepts/effects-and-store), one subagent at a time,
+through B5, B6 and the final pass F.
 
 ## Questions for the user
 
@@ -105,3 +115,4 @@ concepts/policy-and-authorization), one subagent at a time, through B4, B5, B6 a
 | 2026-10-30 | Codebase survey (template A) | Reported in plan.md §3. No files changed (read-only). |
 | 2026-11-02 | B1 foundation (template B) | STYLE.md, nav, glossary, concepts/ticket-lifecycle + stepper visual + 1 diagram. 0 build errors. Supervisor spot-check: 0 defects, 1 survey error found (see notes/facts.md). |
 | 2026-11-02 | B2 samples (template C) | home, learn/what-this-is, tours/life-of-a-github-mention + 2 diagrams. 0 build errors. Found a build.py gap (sibling links); supervisor fixed it. Supervisor spot-check: 0 defects. |
+| 2026-11-02 | B3 domain core | sources-and-triggers, policy-and-authorization + 2 diagrams + 1 glossary term. 0 build errors. Supervisor spot-check: 0 defects. |

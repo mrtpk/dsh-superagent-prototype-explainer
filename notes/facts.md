@@ -39,6 +39,22 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
 - A `dropped` Report ends the Ticket, same as a `ready` one with no pull request to wait for
   (assignments.ts:128-132). [S]
 
+## Domain core (B3, confirmed by supervisor spot-check 2026-11-02)
+- `src/core/evals.ts:118`: `assessor.request()` runs unconditionally after the strongest Trigger is picked,
+  for every strength (explicit or inferred). Assessment is never skipped for an explicit request. [S]
+- `MandateBasis`'s `via: 'listed'` case (model.ts ~120) is constructed only by the one-time migration at
+  `src/app/migration.ts:359`, never by `policy.ts`'s `gate()`/`machineGate()`. It is a legacy basis for
+  Mandates accepted before Mandates recorded their basis, read going forward, not produced by the live
+  gate. [S]
+- `via: 'bot'` (model.ts ~122) requires a non-optional `observation: { mode: AcceptMode }`: a bot Mandate is
+  always inferred, by the type, never explicit and never a stop. [S]
+- `DecisionKind` (model.ts:190) lists `'reopen'` as a value, but no code in `evals.ts` ever constructs a
+  Decision with `kind: 'reopen'` (only `accept`/`stop`/`ignore`/`unavailable` are produced there). Treat
+  `'reopen'` as declared-but-unused in the current code; do not claim all 5 kinds occur in practice. [S]
+- `src/policy.ts:203-204`: the comment "so a thread's tickets never weaken an explicit request to a
+  follow-up" sits directly above `if (admission === 'explicit') return ...` — confirmed exact line numbers
+  (B1's facts.md entry used "~204" for both; the comment is 203, the check is 204). [S]
+
 ## Conflicts and resolutions
 (none yet)
 

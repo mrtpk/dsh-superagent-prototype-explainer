@@ -1,0 +1,71 @@
+---
+title: Policy and authorization: the gate, Eval and the Mandate it grants
+nav_title: Policy and authorization
+level: Intermediate
+prerequisites: concepts/sources-and-triggers
+related: concepts/ticket-lifecycle, concepts/executor-and-worker-sessions, tours/life-of-a-github-mention
+summary: Before a Ticket exists, the gate checks who may send a Trigger, Eval judges the batch, and only an accept decision grants a Mandate.
+---
+<x-sentence>The gate checks who may send a Trigger, Eval judges the batch, and only an accept decision grants a Mandate.</x-sentence>
+
+<h2>The idea</h2>
+<p>{{term policy | Policy}} is the versioned rule set the Engine reads, plus each Source's own part of it ({{cite src/core/ports.ts:17-27}}). {{term admission | admission}}, the gate, is its first layer: a deterministic check of who may send a Trigger, and with what {{term strength | strength}} ({{cite src/policy.ts:191-211}}). {{term eval | Eval}} then asks for an assessment of the admissible batch, and ends with one {{term decision | Decision}} ({{cite src/core/evals.ts:21-26}}). Only an accept Decision grants a {{term mandate | Mandate}}: the strength, scope and Policy version the work relies on ({{cite src/core/model.ts:126-133}}).</p>
+<p><strong>An everyday comparison.</strong> Think of a building's front desk as the gate: it checks identity against a list before anyone goes further. A supervisor, the assessment, then judges the specific request. Only a signed visitor badge, the Mandate, states its own scope and lets the visit continue. The comparison stops at memory: the gate keeps none of its own. It is a pure function of the Trigger, the Thread and the open Tickets on it ({{cite src/core/ports.ts:17-27}}).</p>
+
+<h2>The picture</h2>
+<x-diagram name="b3_gate_and_mandate" alt="Two panels. Panel 1: three boxes, Trigger, gate(trigger, thread, tickets) and GateResult, connected by arrows labelled policy.gate() and returns. Panel 2: three boxes, Eval (batch), Decision (accept) and Mandate, connected by arrows labelled assessment accepts and accept creates." caption="Figure: the gate turns one Trigger into a GateResult (panel 1); an accept Decision then turns that result into a Mandate (panel 2)." />
+<p>Read each panel left to right. Panel 1 shows the gate judging one Trigger. Panel 2 shows an accept Decision building the Mandate that bounds the Ticket's work.</p>
+
+<h2>In the code</h2>
+
+<h3>Step 1: the gate judges each queued Trigger</h3>
+<p><code>Evals.start()</code> calls <code>policy.gate()</code> once for each pending Trigger on the Thread ({{cite src/core/evals.ts:96}}). It keeps the strongest admissible one, by strength and then by time ({{cite src/core/evals.ts:95-101}}). A human Trigger's gate checks explicit addressing first, then a Thread follow-up, then the admission table, in that fixed order.</p>
+<x-code file="src/policy.ts" lines="197-209" highlight="197,204" caption="Line 197 returns explicit strength for an allowed, addressed sender. Line 203's comment says why line 204 checks the admission table's explicit cell before the follow-up case on line 206." />
+<p>A non-human Trigger takes a separate path, <code>machineGate()</code>, which admits only listed bots and senderless events the Source observes, always as inferred ({{cite src/policy.ts:171-188}}).</p>
+
+<h3>Step 2: Eval records a Decision for the gate's result</h3>
+<p><code>GateResult</code> is either <code>admissible: false</code> with a reason, or <code>admissible: true</code> with a strength and a basis ({{cite src/core/ports.ts:7}}). <code>Evals.decide()</code> applies the assessor's outcome to that Eval and records a Decision ({{cite src/core/evals.ts:131-156}}). It refuses to accept an inferred candidate unless <code>Policy.admitsInferred()</code> allows it ({{cite src/core/evals.ts:151-154}}). That needs the accept mode to be <code>auto</code>, with the matched rules still enabled. <code>assessmentOutcome()</code> itself demotes an inferred accept to an ignored <code>would_accept</code> Decision whenever the accept mode is not <code>auto</code> ({{cite src/policy.ts:55-58}}).</p>
+
+<h3>Step 3: an accept decision builds the Mandate</h3>
+<p><code>Evals.accept()</code> copies the Eval's strength, actor, Policy version and basis straight into a new Mandate ({{cite src/core/evals.ts:306-316}}). A Mandate also records <code>scope</code>: what work the accept covers ({{cite src/core/model.ts:126-133}}). It never changes after that, whatever happens to the Ticket it bounds ({{cite src/core/model.ts:125}}).</p>
+
+<h3>Step 4: strength, and what the admission table decides</h3>
+<p>A Mandate's {{term strength | strength}} is <code>explicit</code> or <code>inferred</code>; there is no third, weaker value ({{cite src/core/model.ts:96}}). Not admitted at all is <code>GateResult</code>'s <code>admissible: false</code> branch, which carries no strength and grants no Mandate ({{cite src/core/ports.ts:7}}). The admission table itself has up to three cells per receiving scope, each mapped to <code>explicit</code>, <code>inferred</code> or <code>ignore</code> ({{cite src/admission.ts:9-13}}). <code>policy.ts</code>'s <code>admissionCell()</code> and <code>admissionOf()</code> pick the right cell for a sender and look up its value ({{cite src/policy.ts:135-140}}).</p>
+
+<h2>More detail</h2>
+<p>The accept mode, <code>off</code>, <code>observe</code> or <code>auto</code>, is a Policy-wide switch, default <code>observe</code> ({{cite src/policy.ts:84}}). It decides whether the gate ever admits anything inferred at all ({{cite src/policy.ts:179}}, {{cite src/policy.ts:184}}), and whether an inferred accept is honored rather than merely recorded as <code>would_accept</code> ({{cite src/policy.ts:55-58}}). The Policy version, a hash of the rules, the accept mode and each Source's part, is recorded on every Mandate and Decision ({{cite src/policy.ts:116-118}}). A version change does not revoke a live Mandate by itself; <code>policyEffects()</code> only records what changed, as an Input the Ticket's Executor reads ({{cite src/policy.ts:144-165}}). Eval's own timeout is a separate knob: <code>eval.timeoutSeconds</code>, default 120, becomes <code>evalTimeoutMs</code> once the candidate is delivered to the assessor ({{cite src/policy.ts:85}}, {{cite src/policy.ts:190}}).</p>
+<x-deepdive title="What each Mandate basis means before a resume">
+<table>
+<tr><th>Mandate's <code>basis.via</code></th><th>What <code>revalidate()</code> checks</th></tr>
+<tr><td><code>addressed</code>, or an explicit <code>followup</code></td><td>Always holds ({{cite src/policy.ts:221}}).</td></tr>
+<tr><td>an inferred <code>followup</code></td><td>Holds only in <code>auto</code> mode, with its matched rules still enabled ({{cite src/policy.ts:221}}).</td></tr>
+<tr><td><code>bot</code></td><td>Holds only while the bot stays on the Source's bot list, and, being always inferred, only in <code>auto</code> mode ({{cite src/policy.ts:223}}, {{cite src/policy.ts:238}}).</td></tr>
+<tr><td><code>admission</code></td><td>Holds only while the sender's current cell still grants at least the original strength ({{cite src/policy.ts:225-235}}).</td></tr>
+</table>
+<p>Every basis also fails at once if the Source no longer listens to the original Thread ({{cite src/policy.ts:217-218}}).</p>
+</x-deepdive>
+<p>For the full authorization model, including bots, automated reviewers and revalidation after a processing pause, see the repository's own {{cite docs/002-authorization.md}}.</p>
+
+<h2>What can go wrong</h2>
+<x-warning title="A Policy change does not revoke a live Mandate by itself"><p>Weakening a rule or an admission cell does not touch an open Ticket's Mandate right away. Only revalidation before a resume, or a person's stop, can end it ({{cite src/policy.ts:213-239}}).</p></x-warning>
+<ul>
+  <li><strong>An inferred accept is refused outside <code>auto</code> mode, even if the assessment itself says accept.</strong> <code>Evals.decide()</code> throws before recording anything, unless <code>Policy.admitsInferred()</code> allows the matched rules ({{cite src/core/evals.ts:151-154}}).</li>
+  <li><strong>Explicit admission always wins over a Thread follow-up, never the reverse.</strong> The gate checks the explicit-addressed case first, so a Thread's existing Tickets can never pull an explicit request down to inferred strength ({{cite src/policy.ts:203-204}}).</li>
+</ul>
+<x-simplified><p>This page's basis table leaves out <code>via: 'listed'</code>, which the code's own comment says is for a Mandate accepted before Mandates recorded their basis ({{cite src/core/model.ts:112-113}}).</p></x-simplified>
+<p><strong>Why it matters.</strong> Assuming a Policy change acts immediately can mislead a person two ways. They might think a Ticket lost authority it still has. Or they might trust one that a resume would in fact refuse.</p>
+
+<x-quiz>
+  <x-q level="easy">What does an accept Decision grant that nothing else does?
+    <x-a><p>A Mandate: the strength, scope and Policy version the work relies on ({{cite src/core/model.ts:126-133}}). Nothing else creates one.</p></x-a>
+  </x-q>
+  <x-q level="easy">What are the two Strength values a Mandate can record?
+    <x-a><p><code>explicit</code> and <code>inferred</code> ({{cite src/core/model.ts:96}}). Not admitted at all is <code>GateResult</code>'s <code>admissible: false</code> branch, which carries no strength ({{cite src/core/ports.ts:7}}).</p></x-a>
+  </x-q>
+  <x-q level="medium">In what order does the gate check a human Trigger?
+    <x-a><p>Explicit addressing first, then a Thread follow-up, then the admission table ({{cite src/policy.ts:191-211}}). Explicit admission is checked before the follow-up case, so a Thread's own Tickets can never weaken an explicit request to inferred strength ({{cite src/policy.ts:203-204}}).</p></x-a>
+  </x-q>
+  <x-q level="hard">Why can switching the accept mode from <code>auto</code> to <code>observe</code> not immediately end an open Ticket's authority?
+    <x-a><p>Revalidation runs only before a resume, not on a live Ticket ({{cite src/policy.ts:213-221}}). A mode change only makes <code>policyEffects()</code> record a <code>proactive: false</code> advisory Input for the Ticket, which its Executor reads; it does not revoke the Mandate ({{cite src/policy.ts:160}}).</p></x-a>
+  </x-q>
+</x-quiz>
