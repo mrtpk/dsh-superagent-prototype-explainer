@@ -13,7 +13,7 @@ summary: dsh-superagent runs on DSH and Cordis, and it adds its own domain model
 <p><strong>An everyday comparison.</strong> Think of a new teammate who speaks up only when asked and works alone at their own desk. They report back in the same conversation where the request came from. The comparison stops at authorization. A human teammate uses judgment, but a written {{term policy | Policy}} decides who may ask dsh-superagent for work ({{cite src/core/ports.ts:16-20}}). The agent does not use its own judgment for this.</p>
 
 <h2>The picture</h2>
-<x-diagram name="b2_domain_map" alt="Two panels. Panel 1: three boxes, Cordis, DSH Session and dsh-superagent, with arrows 'profile loads' and 'bundle = this repo'. Panel 2: three boxes, Source/Trigger, Policy/Eval and Ticket/Executor, with arrows 'Eval decides' and 'accept creates'." caption="Figure: dsh-superagent is a DSH bundle running on Cordis (panel 1); on top of that, it adds its own domain model in three groups (panel 2)." />
+<x-diagram name="b2_domain_map" alt="Two panels. Panel 1: three boxes, Cordis, DSH (profile + bundles) and dsh-superagent, with arrows 'runs' and 'bundle = this repo'. Panel 2: three boxes, Source/Trigger, Policy/Eval and Ticket/Executor, with arrows 'Eval decides' and 'accept creates'." caption="Figure: dsh-superagent is a DSH bundle running on Cordis (panel 1); on top of that, it adds its own domain model in three groups (panel 2)." />
 <p>Read each panel left to right. Panel 1 shows the layers that dsh-superagent runs inside: Cordis, DSH, and this bundle. The sibling site teaches the first two. Panel 2 shows the three groups of concepts this site explains, which the rest of this page introduces.</p>
 
 <h2>In dsh-superagent</h2>

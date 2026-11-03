@@ -43,6 +43,9 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-03: USER DECISION: diagram `b2_domain_map` box "DSH Session" renamed to "DSH (profile + bundles)".
+  The arrow label "profile loads" is now "runs" (Cordis runs DSH). The Ticket cite is now model.ts:277-308.
+  The alt text on learn/what-this-is matches. `build.py --strict`: 0 errors, 0 warnings.
 - 2026-11-03: Independent fact check of all 14 pages, glossary, 9 diagrams and the stepper (3 fact-check
   subagents, sets A/B/C). About 160 defects fixed: wrong gate order and revalidation table, wrong
   "explicit skips assessment" and "subscribed Thread skips Eval" claims, wrong mention-intake caller,
@@ -149,9 +152,7 @@ None. Project complete.
 
 ## Questions for the user
 
-- 2026-11-03: diagram `b2_domain_map` has a box "DSH Session" that lists "profiles, bundles", and an arrow
-  "Cordis → profile loads → DSH Session". Profiles and bundles make the DSH plugin tree, not a Session.
-  Rename the box to "DSH (profile + bundles)" and fix the arrow and the alt text on learn/what-this-is?
+(none open)
 
 ## Issues log
 

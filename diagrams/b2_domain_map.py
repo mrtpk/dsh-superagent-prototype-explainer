@@ -4,7 +4,8 @@ Used by: src/learn/what-this-is.html
 Sources (at the pinned commit in explainer.json):
   package.json (dsh.bundle.patch)   dsh-superagent is packaged as a DSH bundle
   cordis.patch.yml                  the Cordis plugin set the bundle installs
-  src/core/model.ts:276-308         Ticket: the domain model's own unit of work
+  src/core/model.ts:277-308         Ticket: the domain model's own unit of work
+  deepseek-harness apps/cli/src/profile-boot.ts:211-217   a DSH profile composes bundle patches
   src/executor/dsh.ts:207-266       DshExecutor: the port that runs Assignments
 """
 
@@ -25,8 +26,8 @@ d.panel(y0, P1_H, 1, "What does dsh-superagent run inside?", "A DSH profile load
 bx_y, bw, bh = y0 + 70, 290, 76
 d.box(46, bx_y, bw, bh, "Cordis", ["plugins, services, typed events", "DSH's own plugin runtime"], col=BLUE)
 d.arrow(46 + bw, bx_y + bh / 2, 400 - 2, bx_y + bh / 2, BLUE)
-d.arrow_label(46 + bw + 32, bx_y + bh / 2, "profile loads", BLUE)
-d.box(400, bx_y, bw, bh, "DSH Session", ["profiles, bundles", "turn / step / round"], col=BLUE)
+d.arrow_label(46 + bw + 32, bx_y + bh / 2, "runs", BLUE)
+d.box(400, bx_y, bw, bh, "DSH (profile + bundles)", ["a profile composes bundles", "sessions: turn / step / round"], col=BLUE)
 d.arrow(400 + bw, bx_y + bh / 2, 754 - 2, bx_y + bh / 2, BLUE)
 d.arrow_label(400 + bw + 32, bx_y + bh / 2, "bundle = this repo", BLUE)
 d.box(754, bx_y, bw, bh, "dsh-superagent", ["cordis.patch.yml", "the superagent profile"], col=EMERALD)
@@ -41,7 +42,7 @@ d.arrow_label(46 + bw + 32, bx_y2 + bh / 2, "Eval decides", AMBER)
 d.box(400, bx_y2, bw, bh, "Policy, Eval", ["src/core/evals.ts", "who may ask for work"], col=AMBER)
 d.arrow(400 + bw, bx_y2 + bh / 2, 754 - 2, bx_y2 + bh / 2, AMBER)
 d.arrow_label(400 + bw + 32, bx_y2 + bh / 2, "accept creates", AMBER)
-d.box(754, bx_y2, bw, bh, "Ticket, Executor", ["src/core/model.ts:276-308", "the authorized work itself"], col=VIOLET)
+d.box(754, bx_y2, bw, bh, "Ticket, Executor", ["src/core/model.ts:277-308", "the authorized work itself"], col=VIOLET)
 
 y = y1 + P2_H + 24
 d.legend(30, y, [(BLUE, "DSH and Cordis — the sibling site's territory"),
