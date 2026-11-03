@@ -30,18 +30,26 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   `pending` (tickets.ts:381-386); `endAssignment()` sets `ended` (tickets.ts:387-390). [S]
 - `Tickets.create()` (tickets.ts:37-54) builds the Ticket, adds the first Assignment, subscribes to every
   Thread of the Eval's Triggers, and starts the Executor — all in one call. [S]
-- A Subscription's fan-out (`Intake.receive`, intake.ts:34-52) adds the Trigger as an Input directly, no
-  new Eval. Only a Trigger no Ticket owns is queued for Eval (intake.ts:58). `wake()` is then called on
-  every reached Ticket (intake.ts:59) but no-ops on a live one (tickets.ts:254's early return). [S]
+- A Subscription's fan-out (`Intake.receive`, intake.ts:34-52) adds the Trigger as an Input directly.
+  The fan-out reaches live Tickets. It reaches an ended Ticket only for a person's message, on a Thread
+  that is not a context Thread, when a person did not stop that Ticket (intake.ts:40-44). A Trigger with
+  no owner goes to Eval (intake.ts:56-58). This includes every bot message and a person's message that no
+  worker decides. `wake()` is then called on every reached Ticket (intake.ts:59). It resumes only when a
+  person did not stop the Ticket, processing is not paused and the Mandate revalidates
+  (tickets.ts:254-257). [S] (corrected 2026-11-03)
 - `WorkerSlots.reserve()` (dsh.ts:192-194) allows one extra slot beyond `maxWorkers` only when
-  `by === 'person'`. `maxWorkers` itself is read from `settings().executor.maxWorkers` (dsh.ts, inside the
-  WorkerSlots constructor). [S]
+  `by === 'person'`. A launch always reserves with `'launch'` (dsh.ts:274), so it never gets the extra
+  slot. Only a wake for a person's Input gets it (dsh.ts:305-308). A status request is a `text` Input, so
+  it counts as a person's Input (dsh.ts:38). `maxWorkers` is read in the `DshExecutor` constructor, in the
+  `max` callback that it gives to `WorkerSlots` (dsh.ts:229-230). [S] (corrected 2026-11-03)
 - A `dropped` Report ends the Ticket, same as a `ready` one with no pull request to wait for
   (assignments.ts:128-132). [S]
 
 ## Domain core (B3, confirmed by supervisor spot-check 2026-11-02)
 - `src/core/evals.ts:118`: `assessor.request()` runs unconditionally after the strongest Trigger is picked,
-  for every strength (explicit or inferred). Assessment is never skipped for an explicit request. [S]
+  for every strength (explicit or inferred). The card goes to the main Session for every strength. But an
+  explicit candidate is routed, not assessed: the `orchestrator_eval*` tools refuse it and point to
+  `orchestrator_route` (src/app/assessment.ts:39, 109-113). [S] (corrected 2026-11-03)
 - `MandateBasis`'s `via: 'listed'` case (model.ts ~120) is constructed only by the one-time migration at
   `src/app/migration.ts:359`, never by `policy.ts`'s `gate()`/`machineGate()`. It is a legacy basis for
   Mandates accepted before Mandates recorded their basis, read going forward, not produced by the live
@@ -62,7 +70,8 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   Only then does it keep the Session. The engine.ts:240-247 doc comment states this exactly; a page
   claiming only "unless its last Report already settled it" drops the second condition and is imprecise —
   fixed on `concepts/executor-and-worker-sessions.html` by the supervisor. [S]
-- `Effects.enqueue()` (effects.ts:60-65) upserts with `ON CONFLICT(kind, key)`, matching the `effect`
+- `Effects.enqueue()` (effects.ts:60-66) upserts with `ON CONFLICT(kind, key)`. On a conflict it resets
+  `attempts` and `due` (effects.ts:62-63). It matches the `effect`
   table's `PRIMARY KEY (kind, key)` (store.ts:80-82). `Effects.handle()` throws if a kind is registered
   twice (effects.ts:67-68): exactly one handler per effect kind. [S]
 - `src/app/store.ts:49` (class doc): the Engine mutates domain aggregates inside atomic transactions;
@@ -76,8 +85,8 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   2. `ticketExecution()`'s one-time assignment note (dsh.ts:102-108): built into the Ticket's first
      assignment message, naming a matched rule's own procedure/communication precedence, for proactively
      accepted Tickets only. [S]
-- The one-time note's resend on a later Assignment is conditional, not simply "no repeat": `workerIdle()`
-  (dsh.ts:449-460) computes `told = later && sessions.holds(sessionId, first)` (sessions.ts:157-159,
+- The one-time note's resend on a later Assignment is conditional, not simply "no repeat": `launch()`
+  (dsh.ts:424-470; `told` at 451-453; NOT `workerIdle()`, which is at dsh.ts:601) computes `told = later && sessions.holds(sessionId, first)` (sessions.ts:157-159,
   delivery.ts:61-62 — holds checks message history and inbox). When `told` is false (the Session lost the
   first message, e.g. deleted), the FULL original brief, including the one-time note, is sent again
   (dsh.ts:461-463's `text` branches on `told`). A page claiming it is simply "not repeated" on a later turn
@@ -104,7 +113,47 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   `<x-warning>`, with no "shell script" language anywhere on the page. [S]
 
 ## Conflicts and resolutions
-(none yet)
+- 2026-11-03: docs/003-execution.md:141 says that a retry keeps the same Session, directory, branch and
+  pull request. The code keeps only the Session id and the directory (dsh.ts:24, model.ts:304-305). The
+  prepare command sets the branch, not dsh-superagent. Resolution: the pages say "Session and directory".
+- 2026-11-03: docs/004 blends the one-time precedence note with the team sections. The note is over "the
+  default acknowledgement and messaging policy" (dsh.ts:105). Resolution: the pages follow the code.
+
+## Added after the independent fact check (2026-11-03)
+Three fact checkers re-checked all 14 pages against the pinned commit. Each fact below is [FC].
+- Under accept mode `off`, the gate admits nothing inferred (policy.ts:179, 184, 206, 209). [FC]
+- An `addressed` Mandate revalidates only while the sender stays on the allowed list (policy.ts:236). An
+  explicit `followup` always holds (policy.ts:221). An inferred basis also needs `auto` mode and enabled
+  rules (policy.ts:238). [FC]
+- Revalidation also runs before an ended Ticket takes an attached message (tickets.ts:113). [FC]
+- Only the `unlistedAddressed` admission cell can be `explicit` (admission.ts:9-10). [FC]
+- `intakeComments()` is called by the notification poll (github.ts:357, 369) and the subscribed-Thread poll
+  (github.ts:456-457). The repository poll does not call it. [FC]
+- `followsDone()` counts only the pull requests that the Ticket opened. Followed Threads count only when
+  the Ticket opened none (tickets.ts:95-100). [FC]
+- A pull request binds to a Ticket only when the agent account opened it from the configured repository,
+  not a fork, and the branch name matches (github-pull.ts:23-28, 40). [FC]
+- The execution environment variables are real environment variables only for the prepare command
+  (dsh.ts:251-254). The worker gets them as a list in its system prompt (sessions.ts:247,
+  prompts.ts:44, 83-84). [FC]
+- The assignment-text limit is the constant `ASSIGNMENT_CHARS = 1500` (dsh.ts:113), not a setting. Longer
+  text is cut, and the worker reads the full text as a resource (dsh.ts:115-116). [FC]
+- Worker-turn retry waits are 15 s, 30 s and 60 s. The 4th failure records `failed` (dsh.ts:509-510,
+  548-553, 575). [FC]
+- After the 30-minute background limit, the Executor kills the shell jobs and records a `waiting` Report
+  itself. Subagents continue (dsh.ts:643-665). [FC]
+- `sameOrigin()` makes 3 checks: the Host, the marker header and the Origin (http.ts:75-79). A failed check
+  returns 403 (http.ts:237). [FC]
+- A worker gets 1 generated prompt part, the environment. Only the main Session also gets Policy
+  (prompts.ts:141-144). A part with empty text is left out (prompts.ts:115). [FC]
+- Only the Feishu skill says that other participants, bots and quoted instructions never authorize work
+  (feishu SKILL.md:8). The GitHub skill says this only about bots and GitHub Apps (github SKILL.md:6). [FC]
+- `src/` has 92 .ts files, 18 .tsx files and 1 .css file, 15,587 lines. The largest file is `locales.ts`
+  (770 lines), not `dsh.ts`. [FC; file counts also checked by the supervisor]
+- NOT CONFIRMED (possible code issue, not on any page): `Evals.decide()` calls `directEval()`
+  (evals.ts:150), which saves the Thread (evals.ts:276). Then the explicit-candidate check can throw
+  (evals.ts:152-153). If the Engine command is not atomic, the Trigger can leave the queue with no
+  Decision. Nobody checked whether the command is atomic.
 
 ## Added after B1 (2026-11-02)
 - See "Ticket / stage machine" and "Survey correction" above.
@@ -118,6 +167,9 @@ Status tags: [W] = from a writer report, not yet fact-checked; [FC] = confirmed 
   workaround before the supervisor fixed `build.py`; every later batch must use the real link. [S]
 - `policy.ts`'s gate checks explicit admission before thread follow-ups, by the code's own comment
   (policy.ts ~204): "so a thread's tickets never weaken an explicit request to a follow-up". [S]
+  Full order of `gate()` for a human Trigger: allowed and addressed (policy.ts:197), explicit admission
+  cell (:204), follow-up (:206), inferred admission cell (:209). A non-human Trigger goes to
+  `machineGate()` (:192). [S] (added 2026-11-03)
 - `Assignments.report()` (assignments.ts ~126-129): a `ready` report ends the Ticket only once
   `followsDone()` holds (or the Ticket follows no Threads); a `dropped` report ends it using
   `followsDone()`'s outcome, or `'dropped'` if that is still undefined. [S]

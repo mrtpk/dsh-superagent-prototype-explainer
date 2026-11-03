@@ -35,14 +35,14 @@ BEGIN, END = "<!-- BEGIN GENERATED folder-tree -->", "<!-- END GENERATED folder-
 # Optional page link: "folder": ("Description.", "code/page-id")
 DESCRIPTIONS: dict[str, str | tuple[str, str]] = {
     "": "The repository root: a Cordis plugin set packaged as a DSH bundle, not a standalone framework.",
-    "src": "All production code: 147 .ts files and 30 .tsx files, about 30,180 lines.",
+    "src": "All production code: 92 .ts files, 18 .tsx files and one .css file.",
     "src/app": "The glue: Runtime, Engine callers, Effects, Outbox, Sessions, Settings, Prompts, the "
                "management HTTP API and the views the panel reads.",
     "src/app/tools": "The main Session's and the Executor Sessions' application tools.",
     "src/app/views": "Read-only views the management API serves: overview, tickets, threads, sources and settings.",
     "src/client": "The React panel: the DeepSeek Harness sidebar plugin, its pages, and the bilingual copy and glossary.",
     "src/core": "The domain core: Engine and its five parts (Intake, Evals, Tickets, Assignments, Replies), "
-                "the Ticket stage machine, and the domain types. Imports nothing outside itself.",
+                "the Ticket stage machine, and the domain types. Imports no file outside this folder.",
     "src/executor": "DshExecutor: one DSH Session and one directory per Ticket, worker slots, and background work.",
     "src/infra": "Low-level glue: the CLI transport, the agent's process environment, package paths and the health board.",
     "src/sources": "The GitHub and Feishu Source plugins: Triggers, Channels, polling and the Policy parts they own.",

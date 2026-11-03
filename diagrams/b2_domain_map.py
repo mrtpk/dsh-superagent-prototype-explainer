@@ -23,7 +23,7 @@ y0 = 112
 P1_H = 170
 d.panel(y0, P1_H, 1, "What does dsh-superagent run inside?", "A DSH profile loads it as a Cordis plugin set.")
 bx_y, bw, bh = y0 + 70, 290, 76
-d.box(46, bx_y, bw, bh, "Cordis", ["plugins, each one ctx.effect()", "DSH's own plugin runtime"], col=BLUE)
+d.box(46, bx_y, bw, bh, "Cordis", ["plugins, services, typed events", "DSH's own plugin runtime"], col=BLUE)
 d.arrow(46 + bw, bx_y + bh / 2, 400 - 2, bx_y + bh / 2, BLUE)
 d.arrow_label(46 + bw + 32, bx_y + bh / 2, "profile loads", BLUE)
 d.box(400, bx_y, bw, bh, "DSH Session", ["profiles, bundles", "turn / step / round"], col=BLUE)

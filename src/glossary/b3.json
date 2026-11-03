@@ -3,7 +3,7 @@
   "admission": {
     "term": "admission",
     "short": "Eval's first, deterministic layer: it decides who may send a Trigger, with what strength, before any assessment runs.",
-    "long": "{{cite src/core/ports.ts:20}} is the <code>Policy.gate</code> method the Engine calls; {{cite src/policy.ts:191-211}} is the implementation. Its last resort is the per-Source admission table, matched by {{cite src/policy.ts:138-140}} against the row defaults ({{cite src/admission.ts:9-13}}).",
+    "long": "{{cite src/core/ports.ts:20}} is the <code>Policy.gate</code> method the Engine calls; {{cite src/policy.ts:191-211}} is the implementation. It also reads the per-Source admission table, which {{cite src/policy.ts:138-140}} looks up, with the defaults of {{cite src/admission.ts:12-13}}.",
     "aliases": ["gate", "the gate", "admission table"],
     "page": "concepts/policy-and-authorization"
   }

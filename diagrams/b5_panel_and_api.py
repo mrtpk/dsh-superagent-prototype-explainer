@@ -4,10 +4,11 @@ Used by: src/concepts/panel-and-management-api.html
 Sources (at the pinned commit in explainer.json):
   src/client/api.ts:33-37      api(): fetch('/orchestrator/api/<path>') with header x-orchestrator-request: 1
   src/app/http.ts:230-246      registerHttp(): the /orchestrator/api/ prefix, loopback host required, same-origin checked
-  src/app/http.ts:74-78        sameOrigin(): host and header check
+  src/app/http.ts:75-79        sameOrigin(): host, marker header and Origin check
   scripts/dsh-superagent:81-84 the CLI script's own status check, same route and header
   src/client/route.ts:7        TABS, the six tab ids in order
-  src/client/app.tsx:148-159   Pages(): one view per tab
+  src/client/app.tsx:147-159   Pages(): one view per tab
+  docs/005-panel.md:17-24      what each tab shows (the row texts in panel 2)
   src/app/versions.ts:21-28    Versions.save(): a full numbered snapshot, used by both Settings and Prompts
   src/app/store.ts:188         Store.blockRevision(): one counter per settings block
   src/app/settings.ts:150-151  a stale block revision throws SettingsConflict
@@ -29,7 +30,7 @@ y0 = 112
 P1_H = 170
 d.panel(y0, P1_H, 1, "What calls the Management API, and how?", "A fetch with one marker header; the host checks it is loopback and same-origin.")
 bx_y, bw, bh = y0 + 70, 290, 76
-d.box(46, bx_y, bw, bh, "React panel", ["src/client/app.tsx", "fetch('/orchestrator/api/...')"], col=BLUE)
+d.box(46, bx_y, bw, bh, "React panel", ["src/client/api.ts:37", "fetch('/orchestrator/api/...')"], col=BLUE)
 d.arrow(46 + bw, bx_y + bh / 2, 400 - 2, bx_y + bh / 2, BLUE[0])
 d.arrow_label(46 + bw + 32, bx_y + bh / 2, "x-orchestrator-request: 1", BLUE[0])
 d.box(400, bx_y, bw, bh, "Management API", ["http.ts:230-246", "loopback + same-origin only"], col=TEAL)
@@ -39,7 +40,7 @@ d.box(754, bx_y, bw, bh, "Store, Prompts, Settings, Engine", ["src/app/*.ts"], c
 
 y1 = y0 + P1_H + 24
 P2_H = 196
-d.panel(y1, P2_H, 2, "What do the six tabs show?", "Each tab reads one part of the host state; none duplicates another.")
+d.panel(y1, P2_H, 2, "What do the six tabs show?", "What each tab shows, as docs/005-panel.md:17-24 lists it.")
 d.step_card(46, y1 + 70, 1008, 110, 1, "The panel's tabs, in order", BLUE, tag="route.ts:7", rows=[
     ("Overview", "needs-action items, problems, 24h activity, Executor load"),
     ("Source", "Source state, setup problems, filtered and dropped counts"),

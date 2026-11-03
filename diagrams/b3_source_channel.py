@@ -3,10 +3,12 @@
 Used by: src/concepts/sources-and-triggers.html
 Sources (at the pinned commit in explainer.json):
   src/sources/github-trigger.ts:65-77   commentTrigger() builds a Trigger from one GitHub comment
-  src/core/model.ts:23-39               Trigger: threads, actor, human, addressed
+  src/core/model.ts:22-39               Trigger: threads, actor, human, addressed
   src/core/model.ts:157-182             Thread: the aggregate a Trigger's threads[0] names
   src/core/model.ts:9                   ChannelRef: source, thread, address
-  src/sources/github-trigger.ts:8-9     githubChannel() builds the reply address
+  src/sources/github-trigger.ts:7-9     githubChannel() builds the reply address
+  src/sources/github-trigger.ts:82-97   issueTrigger()/pullTrigger() for an opened Issue or PR
+  src/core/intake.ts:25-29              the scope filter stores a filtered Trigger and stops it
   src/sources/registry.ts:95-98         SourceRegistry.send() hands the message to the Source kind's channel
 """
 
@@ -28,7 +30,7 @@ bx_y, bw, bh = y0 + 70, 290, 76
 d.box(46, bx_y, bw, bh, "Source instance (github)", ["src/sources/github-trigger.ts:65-77", "commentTrigger(comment, ref)"], col=BLUE)
 d.arrow(46 + bw, bx_y + bh / 2, 400 - 2, bx_y + bh / 2, BLUE)
 d.arrow_label(46 + bw + 32, bx_y + bh / 2, "produces", BLUE)
-d.box(400, bx_y, bw, bh, "Trigger", ["src/core/model.ts:23-39", "id, threads, actor, addressed"], col=EMERALD)
+d.box(400, bx_y, bw, bh, "Trigger", ["src/core/model.ts:22-39", "id, threads, actor, addressed"], col=EMERALD)
 d.arrow(400 + bw, bx_y + bh / 2, 754 - 2, bx_y + bh / 2, EMERALD)
 d.arrow_label(400 + bw + 32, bx_y + bh / 2, "threads[0]", EMERALD)
 d.box(754, bx_y, bw, bh, "Thread", ["src/core/model.ts:157-182", "one PR/Issue number"], col=AMBER)
@@ -40,7 +42,7 @@ bx_y2 = y1 + 70
 d.box(46, bx_y2, bw, bh, "Trigger.channel", ["src/core/model.ts:9", "ChannelRef: source, thread, address"], col=EMERALD)
 d.arrow(46 + bw, bx_y2 + bh / 2, 400 - 2, bx_y2 + bh / 2, EMERALD)
 d.arrow_label(46 + bw + 32, bx_y2 + bh / 2, "same address", EMERALD)
-d.box(400, bx_y2, bw, bh, "Channel", ["src/sources/github-trigger.ts:8-9", "githubChannel(number, url)"], col=AMBER)
+d.box(400, bx_y2, bw, bh, "Channel", ["src/sources/github-trigger.ts:7-9", "githubChannel(number, url)"], col=AMBER)
 d.arrow(400 + bw, bx_y2 + bh / 2, 754 - 2, bx_y2 + bh / 2, AMBER)
 d.arrow_label(400 + bw + 32, bx_y2 + bh / 2, "kind.channel.send()", AMBER)
 d.box(754, bx_y2, bw, bh, "Source instance (github)", ["src/sources/registry.ts:95-98", "SourceRegistry.send()"], col=BLUE)
@@ -49,5 +51,5 @@ y = y1 + P2_H + 24
 d.legend(30, y, [(BLUE, "Source instance"), (EMERALD, "Trigger / its Channel"), (AMBER, "Thread / Channel delivery")])
 y += 40
 y = d.footnotes(30, y, ["Simplified: one comment makes one Trigger here; an opened Issue or PR instead uses issueTrigger()/pullTrigger().",
-                        "Not shown: the SourceScope filter that can drop a Trigger before it reaches a Thread at all."])
+                        "Not shown: the Source scope filter, which can stop a Trigger before it reaches a Thread."])
 d.save(height=y + 14)

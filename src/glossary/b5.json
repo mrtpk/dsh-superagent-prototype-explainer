@@ -3,7 +3,7 @@
   "panel": {
     "term": "Panel",
     "short": "The React page dsh-superagent injects into DeepSeek Harness's own web sidebar, for supervising and configuring it.",
-    "long": "{{cite src/client/index.tsx:48-58}}'s <code>apply()</code> injects a sidebar icon and the main panel component into DSH's own slots.",
+    "long": "{{cite src/client/index.tsx:49-58}}'s <code>apply()</code> injects a sidebar icon, the main panel component and a Plugin Manager config view into DSH's own slots.",
     "aliases": ["management panel", "web panel"],
     "page": "concepts/panel-and-management-api"
   },
@@ -16,7 +16,7 @@
   },
   "built-in-part": {
     "term": "built-in part",
-    "short": "One named section of the built-in system prompt, such as runtime/admission, that a team may override with its own text.",
+    "short": "One named built-in text, such as runtime/admission or a Source skill, that a team may override with its own text.",
     "long": "{{cite src/app/prompts.ts:24-26}} lists the 15 parts a team may override, by the key an override names them by.",
     "aliases": ["built-in parts", "prompt part"],
     "page": "concepts/prompts-and-skills"
@@ -24,7 +24,7 @@
   "source-skill": {
     "term": "Source skill",
     "short": "A bundled Skill that teaches the agents a Source's own tools, such as GitHub's gh CLI or reading a Feishu chat.",
-    "long": "dsh-superagent bundles exactly two: {{cite skills/dsh-superagent-github/SKILL.md}} and {{cite skills/dsh-superagent-feishu/SKILL.md}}. Each is registered as a DSH Skill in every Session's skill scope ({{cite src/app/sessions.ts:319-324}}); see the sibling site's <a href=\"../../../deepseek-harness-explainer/site/concepts/skills.html\">\"Skills\"</a> for how DSH itself loads one on demand.",
+    "long": "dsh-superagent bundles exactly two: {{cite skills/dsh-superagent-github/SKILL.md}} and {{cite skills/dsh-superagent-feishu/SKILL.md}}. Each is registered as a DSH Skill in every Session's skill scope, the Feishu one only when a Feishu bot is configured ({{cite src/app/prompts.ts:146-148}}, {{cite src/app/sessions.ts:319-324}}); see the sibling site's <a href=\"../../../deepseek-harness-explainer/site/concepts/skills.html\">\"Skills\"</a> for how DSH itself loads one on demand.",
     "aliases": ["bundled skill", "bundled Source skill"],
     "page": "concepts/prompts-and-skills"
   },
@@ -37,7 +37,7 @@
   },
   "settings-block": {
     "term": "settings block",
-    "short": "One named part of Settings, such as policy, executor or one Source, saved and versioned on its own.",
+    "short": "One named part of Settings, such as policy, executor or one Source, saved on its own with its own revision counter.",
     "long": "{{cite src/app/settings.ts:32-52}} lists the block kinds; {{cite src/app/store.ts:188}} keeps each block's own revision counter.",
     "aliases": ["settings blocks"],
     "page": "concepts/panel-and-management-api"

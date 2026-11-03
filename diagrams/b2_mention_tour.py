@@ -4,9 +4,9 @@ Used by: src/tours/life-of-a-github-mention.html
 Sources (at the pinned commit in explainer.json):
   src/sources/github-trigger.ts:60-76   mentions() and commentTrigger() mark a mention
   src/policy.ts:191-211                 the gate: an allowed, addressed sender is explicit
-  src/core/evals.ts:306-316             Evals.accept() creates the Mandate and the Ticket
+  src/core/evals.ts:306-316             Evals.accept() makes the Mandate and asks Tickets.create()
   src/executor/dsh.ts:424-470           DshExecutor.launch() starts the worker Session
-  src/sources/github-pull.ts:57-69      observePull() binds and later closes the pull request
+  src/sources/github-pull.ts:57-69      observePull() can bind an open pull request, and reports its close
   src/core/tickets.ts:77-90             Tickets.threadClosed() ends the Ticket
 """
 
@@ -26,7 +26,7 @@ P_H = 152
 cw = 322
 CH = 78
 
-d.panel(y0, P_H, 1, "How does a mention become a Ticket?", "Intake, the gate and Eval turn it into an accept.")
+d.panel(y0, P_H, 1, "How does a mention become a Ticket?", "Intake, the gate, Eval and the main Session turn it into an accept.")
 cy = y0 + 56
 d.step_card(46, cy, cw, CH, 1, "A comment mentions the agent", BLUE,
             rows=[("at", "github-trigger.ts:71"), ("in", "intake.ts receive()")])

@@ -43,6 +43,12 @@ Update it after every subagent finishes and after every user decision.
 
 Newest first.
 
+- 2026-11-03: Independent fact check of all 14 pages, glossary, 9 diagrams and the stepper (3 fact-check
+  subagents, sets A/B/C). About 160 defects fixed: wrong gate order and revalidation table, wrong
+  "explicit skips assessment" and "subscribed Thread skips Eval" claims, wrong mention-intake caller,
+  wrong `src/` counts, about 50 wrong citations. Sibling link on the home page was dead; fixed.
+  Supervisor re-checked key fixes in the code. `build.py --strict --force-diagrams`: 0 errors, 0 warnings.
+  Manual link check of site/: 573 links, 0 dead. notes/facts.md corrected (5 wrong entries) and extended.
 - 2026-11-02: Phase F (final consistency pass) committed. Checked all 12 pages for terminology consistency
   (the "orchestrator" vs. "main Session" slip B5 flagged: not repeated elsewhere), cross-page mechanism
   consistency (stage machine, gate order, Effects, settings blocks, Deployment split, all 19 central-files
@@ -143,11 +149,15 @@ None. Project complete.
 
 ## Questions for the user
 
-(none open)
+- 2026-11-03: diagram `b2_domain_map` has a box "DSH Session" that lists "profiles, bundles", and an arrow
+  "Cordis → profile loads → DSH Session". Profiles and bundles make the DSH plugin tree, not a Session.
+  Rename the box to "DSH (profile + bundles)" and fix the arrow and the alt text on learn/what-this-is?
 
 ## Issues log
 
-(none yet)
+- 2026-11-03: `build.py`'s `check_links` (about line 1386) accepts any number of `..` before a sibling
+  site name. It did not catch the dead `../deepseek-harness-explainer/...` link on the home page. Open.
+- 2026-11-03: possible code issue, not confirmed: evals.ts:150-153 (see notes/facts.md). Not on any page.
 
 ## Subagent log
 
@@ -161,3 +171,6 @@ None. Project complete.
 | 2026-11-02 | B5 prompts and panel | prompts-and-skills, panel-and-management-api + 2 diagrams + 6 glossary terms. 0 build errors. Supervisor spot-check: 1 precision defect found and fixed (assignment-note resend condition). |
 | 2026-11-02 | B6 code map + reference | central-files, config-and-deployment. 0 build errors, 0 warnings, all 12 pages exist. Supervisor spot-check: 0 defects. |
 | 2026-11-02 | Phase F consistency pass | Checked terminology, cross-page facts, nav, glossary, links across all 12 pages. 1 glossary-coverage fix (dsh-profile/dsh-bundle not linked). 0 other defects. |
+| 2026-11-03 | Fact check set A (home, what-this-is, ticket-lifecycle, sources-and-triggers, policy-and-authorization, core/b3 glossary, b1/b3 diagrams, stepper) | About 190 claims checked, about 70 defects fixed. |
+| 2026-11-03 | Fact check set B (executor, effects-and-store, prompts-and-skills, panel-and-management-api, b4/b5 glossary and diagrams) | About 150 claims checked, about 48 defects fixed. |
+| 2026-11-03 | Fact check set C (tour, config-and-deployment, code pages, b2 diagrams, gen_folder_tree.py) | About 160 claims checked, 41 defects fixed. |

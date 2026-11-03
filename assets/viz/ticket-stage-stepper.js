@@ -1,22 +1,23 @@
-/* ticket-stage-stepper.js - step through the stage table of docs/003-execution.md:9-18.
+/* ticket-stage-stepper.js - step through the stage table of docs/003-execution.md:9-17.
  *
  * Mounts into <x-viz id="ticket-stage-stepper"> on concepts/ticket-lifecycle.html.
  * Vanilla JS, no libraries, no network. Every station's text is fixed (no randomness), so every
  * reader sees the same example ticket.
  *
  * Sources (at the pinned commit in explainer.json):
- *   docs/003-execution.md:9-18   the stage table itself (panel label column, condition column)
+ *   docs/003-execution.md:9-17   the stage table itself (panel label column, condition column)
  *   src/core/stage.ts:9-21       ticketStage(): the first matching row of the table wins
  *   src/core/model.ts:349-353    waitsForPerson(): a later human message lifts blocked/failed
  *   src/core/model.ts:334        latestAssignment(): a ticket's current Assignment
- *   src/core/model.ts:336        latestReport(): the state any Assignment last reported
+ *   src/core/assignments.ts:117-119, src/core/tickets.ts:356   what clears an Attention question
+ *   docs/003-execution.md:33     a turn that ends with background work keeps the ticket working
  *
  * Station order reads as a lifecycle (idle, queued, working, then a person-needed stage), not the
- * table's own top-to-bottom row order and not ticketStage()'s own check order (docs/003-execution.md's
- * table and ticketStage() both check person/delivery and person/answer before anything else).
+ * table's own top-to-bottom row order and not ticketStage()'s own check order (ticketStage() checks
+ * ended, then person/delivery and person/answer, before the other rows).
  * This visual leaves out person/delivery (Input undelivered) - see the page's "Simplified" note.
- * Also left out: the exact retry backoff timers, and the "ended" stage (an ended ticket has no stage
- * at all - ticketStage is called only on an open ticket).
+ * Also left out: the exact retry backoff timers, and the "ended" row (src/core/stage.ts:10), which
+ * ticketStage() checks first.
  *
  * Rules (STYLE.md section 10): IIFE scope; prefixed classes scoped under the mount; colours from the
  * site.css custom properties (dark mode works); real <button> elements (min 40 px); keyboard and
@@ -39,21 +40,23 @@
       label: "Queued", group: "working / queued", where: "src/core/stage.ts:18",
       condition: "No Assignment exists yet, or the latest one is still “pending”.",
       detail: "The ticket has a Mandate but no worker slot yet. It waits here until the " +
-        "configured concurrency limit frees one (docs/003-execution.md:55-61).",
+        "configured concurrency limit frees one (docs/003-execution.md:57-61).",
       part: "working"
     },
     {
       label: "Working", group: "working", where: "src/core/stage.ts:20",
       condition: "Everything else: an Assignment is running and nothing above matched.",
       detail: "This is the fallback row (ticketStage()'s last line). The worker's turn is " +
-        "active, or it is busy with background shell jobs or subagents.",
+        "active, or its turn ended while its background shell jobs or subagents still run " +
+        "(docs/003-execution.md:33).",
       part: "working"
     },
     {
       label: "Awaiting review", group: "person / review", where: "src/core/stage.ts:15",
       condition: "The latest Report is “ready”.",
       detail: "A result is ready for a person, most often a pull request. “Awaiting review” " +
-        "means a ready Report with a pull request (docs/003-execution.md:106).",
+        "means a ready Report on a Ticket that still follows a pull request: with no followed " +
+        "Thread, a ready Report ends the Ticket (src/core/assignments.ts:128-132).",
       part: "person"
     },
     {
@@ -67,14 +70,16 @@
       label: "Failed", group: "person / failed", where: "src/core/stage.ts:17",
       condition: "The latest Report is “failed”, and no human message reached the ticket since.",
       detail: "Same rule as Blocked, with the other report state. A retry starts a fresh " +
-        "Assignment in the same Session, directory, branch and pull request.",
+        "Assignment on the same Ticket, with the same worker Session and directory " +
+        "(src/core/tickets.ts:168-180).",
       part: "person"
     },
     {
       label: "Awaiting answer", group: "person / answer", where: "src/core/stage.ts:12",
       condition: "The ticket has an open Attention (a question for a person).",
       detail: "This row is checked second, right after “Input undelivered”, which this " +
-        "visual leaves out. An answer, or the worker clearing the question, ends it.",
+        "visual leaves out. The worker's next Report can clear the question, and the end of " +
+        "the ticket clears it (src/core/assignments.ts:117-119, src/core/tickets.ts:356).",
       part: "person"
     }
   ];
@@ -179,7 +184,7 @@
     var s = STATIONS[i];
     var col = PART_COLOR[s.part] || "var(--line)";
     this.card.style.setProperty("--tss-c", col);
-    this.kindEl.textContent = PART_NAME[s.part] + " · panel label “" + s.group + "”";
+    this.kindEl.textContent = PART_NAME[s.part] + " · stage “" + s.group + "”";
     this.kindEl.style.setProperty("--tss-c", col);
     this.titleEl.textContent = (i + 1) + ". " + s.label;
     this.whereEl.textContent = s.where + " (first matching row wins)";

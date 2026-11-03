@@ -2,26 +2,26 @@
 title: Configuration and deployment: the bundle, settings, env vars, the CLI and the API
 nav_title: Configuration and deployment
 related: concepts/panel-and-management-api, concepts/executor-and-worker-sessions, code/central-files, learn/what-this-is
-summary: How dsh-superagent loads as a DSH bundle, each settings block's defaults, the worker environment variables, the scripts/dsh-superagent CLI, and the Management API's routes.
+summary: How dsh-superagent loads as a DSH bundle, each settings block's defaults, the execution environment variables, the scripts/dsh-superagent CLI, and the Management API's routes.
 ---
 <h2>Purpose</h2>
-<p>This page is a lookup reference, not a tutorial. It covers four things: how the bundle loads into a DeepSeek Harness (DSH) profile, each settings block's fields and defaults, the environment variables a worker's shell sees, and the two things that call the {{term management-api | Management API}} from outside the panel: <code>scripts/dsh-superagent</code> and, for the routes themselves, the panel. For installing a working deployment step by step, accounts, and troubleshooting, see the repository's own {{cite docs/006-deployment.md}}.</p>
+<p>This page is a lookup reference, not a tutorial. It covers four things: how the bundle loads into a DeepSeek Harness (DSH) profile, each settings block's fields and defaults, the execution environment variables, and the {{term management-api | Management API}}. The panel and <code>scripts/dsh-superagent</code> both call that API. For installing a working deployment step by step, accounts, and troubleshooting, see the repository's own {{cite docs/006-deployment.md}}.</p>
 
 <h2>How the bundle loads into a DSH profile</h2>
-<p>dsh-superagent ships as a {{term dsh-bundle | DSH bundle}}: <code>package.json</code>'s <code>dsh.bundle.patch</code> field names <code>cordis.patch.yml</code> ({{cite package.json:30-33}}), and a DSH profile's own Cordis configuration inserts that patch's entries. A sentence on what a Cordis patch and an insert are: see the sibling site's <a href="../../../deepseek-harness-explainer/site/learn/plugins-and-cordis.html">"Plugins and Cordis"</a>.</p>
-<p><code>cordis.patch.yml</code> inserts three plugins and two agent presets ({{cite cordis.patch.yml:4-12}}):</p>
+<p>dsh-superagent ships as a {{term dsh-bundle | DSH bundle}}: <code>package.json</code>'s <code>dsh.bundle.patch</code> field names <code>cordis.patch.yml</code> ({{cite package.json:30-33}}). When a DSH profile stacks the bundle, DSH applies this patch before the profile's own patch file. The sibling site's <a href="../../../deepseek-harness-explainer/site/learn/profiles-and-bundles.html">"Profiles and bundles"</a> explains bundles, patch layers and their order.</p>
+<p><code>cordis.patch.yml</code> inserts three plugins ({{cite cordis.patch.yml:4-12}}) and two agent presets ({{cite cordis.patch.yml:20-23}}, {{cite cordis.patch.yml:125-128}}):</p>
 <table>
 <tr><th>Insert id</th><th>Loads (export path)</th><th>What it is</th></tr>
 <tr><td><code>dsh-superagent</code></td><td><code>dsh-superagent</code> (the package's main entry)</td><td>The main plugin: mounts <code>Runtime</code> ({{cite src/index.ts:7}}, {{cite src/index.ts:21}}).</td></tr>
-<tr><td><code>dsh-superagent-github</code></td><td><code>dsh-superagent/github-watch</code></td><td>The GitHub {{term source | Source}}'s own Cordis plugin, <code>name = 'dsh-superagent-github'</code> ({{cite src/sources/github.ts:110-112}}). Always enabled.</td></tr>
+<tr><td><code>dsh-superagent-github</code></td><td><code>dsh-superagent/github-watch</code></td><td>The GitHub {{term source | Source}}'s own Cordis plugin, <code>name = 'dsh-superagent-github'</code> ({{cite src/sources/github.ts:110-112}}). Its row has no <code>disabled</code> key, so it starts enabled ({{cite cordis.patch.yml:7-8}}).</td></tr>
 <tr><td><code>dsh-superagent-feishu</code></td><td><code>dsh-superagent/feishu-watch</code></td><td>The Feishu Source's plugin. Ships with <code>disabled: true</code> ({{cite cordis.patch.yml:10-12}}); enabling it still needs a bot CLI configured, {{cite docs/006-deployment.md:49-69}}.</td></tr>
 <tr><td><code>dsh-superagent-worker-preset</code>, <code>dsh-superagent-router-preset</code></td><td><code>@deepseek-ai/dsh-agent-preset</code> (two rows)</td><td>The two agent presets Sessions load by id, <code>WORKER_PRESET</code> and <code>ROUTER_PRESET</code> ({{cite src/app/sessions.ts:48}}). Removing either row makes a resume fail with <code>agent-preset/not-found</code> ({{cite docs/006-deployment.md:244-246}}).</td></tr>
 </table>
-<p>Each export path is a separate build output: <code>tsdown.config.ts</code> compiles <code>src/index.ts</code>, <code>src/sources/github.ts</code> and <code>src/sources/feishu.ts</code> into three separate files under <code>lib/</code> ({{cite tsdown.config.ts:10}}), matching the subpaths <code>package.json</code>'s <code>exports</code> field declares ({{cite package.json:16-18}}). The panel is a fourth, separate build, a browser bundle loaded into DSH's own module loader ({{cite tsdown.config.ts:11-13}}); {{link concepts/panel-and-management-api}} covers how it is injected.</p>
-<p>The profile that loads the bundle needs its own patch file in turn, setting the plugin's required <code>stateDir</code> and the panel's port; see {{cite examples/profile.cordis.patch.yml}} for a worked example. <code>stateDir</code> must be an absolute path ({{cite src/deployment.ts:16}}); the plugin's own comment says it refuses to start without one ({{cite cordis.patch.yml:1-3}}). Three more machine fields are <code>Volatile</code>: dsh-superagent re-reads them on every use, so a change through DSH's own Plugin Manager applies without a restart ({{cite src/deployment.ts:17-22}}).</p>
+<p>Each export path is a separate build output: <code>tsdown.config.ts</code> compiles <code>src/index.ts</code>, <code>src/sources/github.ts</code> and <code>src/sources/feishu.ts</code> into three separate files under <code>lib/</code> ({{cite tsdown.config.ts:10}}), matching the paths that <code>package.json</code>'s <code>exports</code> field declares ({{cite package.json:11-18}}). The panel is a fourth, separate build, a browser bundle loaded into DSH's own module loader ({{cite tsdown.config.ts:11-13}}); {{link concepts/panel-and-management-api}} covers how it is injected.</p>
+<p>The profile that loads the bundle needs its own patch file. That file sets the plugin's required <code>stateDir</code>, and the host and port of DSH's web server, which serves the panel. {{cite examples/profile.cordis.patch.yml}} is a worked example. <code>stateDir</code> must be an absolute path ({{cite src/deployment.ts:13}}, {{cite src/deployment.ts:16}}). The bundle's own comment says that the plugin refuses to start without it ({{cite cordis.patch.yml:1-3}}). Three more machine fields are <code>Volatile</code>: dsh-superagent reads them again on each use, so a change applies without a restart ({{cite src/deployment.ts:14}}, {{cite src/deployment.ts:17-22}}).</p>
 
 <h2>Settings blocks and their defaults</h2>
-<p>Settings is validated and saved one {{term settings-block | settings block}} at a time; {{link concepts/panel-and-management-api}} covers saving and versioning. This table gives each block's fields as the schemas define them, not how to edit them.</p>
+<p>Settings is validated and saved one {{term settings-block | settings block}} at a time; {{link concepts/panel-and-management-api}} covers saving and versioning. This table gives each block's fields as the schemas define them, not how to edit them. With no saved settings, the Store parses an empty object, so each schema default applies ({{cite src/app/store.ts:186}}).</p>
 <table>
 <tr><th>Block</th><th>Field</th><th>Default</th><th>Bounds</th></tr>
 <tr><td>(top level)</td><td><code>paused</code></td><td><code>false</code></td><td>— ({{cite src/policy.ts:100}})</td></tr>
@@ -29,7 +29,7 @@ summary: How dsh-superagent loads as a DSH bundle, each settings block's default
 <tr><td><code>sources</code></td><td><code>{}</code> (each Source's <code>allowed</code> list and admission table)</td><td>— ({{cite src/policy.ts:77}}, {{cite src/policy.ts:81}})</td></tr>
 <tr><td rowspan="3"><code>eval</code></td><td><code>mode</code></td><td><code>observe</code></td><td><code>off</code> / <code>observe</code> / <code>auto</code> ({{cite src/policy.ts:84}})</td></tr>
 <tr><td><code>timeoutSeconds</code></td><td>120</td><td>30–600 ({{cite src/policy.ts:85}}, {{cite src/limits.ts:5}})</td></tr>
-<tr><td><code>model</code></td><td><code>null</code> (the profile's default model)</td><td>— ({{cite src/policy.ts:86}})</td></tr>
+<tr><td><code>model</code></td><td><code>null</code> (dsh-superagent sets no model, so the Session keeps the model DSH gives it)</td><td>— ({{cite src/policy.ts:86}}, {{cite src/app/role-models.ts:15}})</td></tr>
 <tr><td rowspan="5"><code>executor</code></td><td><code>maxWorkers</code></td><td>3</td><td>1–16 ({{cite src/policy.ts:93}}, {{cite src/limits.ts:6}})</td></tr>
 <tr><td><code>directory</code></td><td><code>''</code> (means <code>&lt;stateDir&gt;/work</code>)</td><td>absolute path, or empty ({{cite src/policy.ts:94}})</td></tr>
 <tr><td><code>prepare</code></td><td><code>''</code></td><td>max 4,000 characters ({{cite src/policy.ts:95}}, {{cite src/limits.ts:7}})</td></tr>
@@ -40,25 +40,25 @@ summary: How dsh-superagent loads as a DSH bundle, each settings block's default
 <tr><td><code>admissionContextTimeoutMs</code></td><td>15,000</td><td>1–90,000 ({{cite src/deployment.ts:21-22}})</td></tr>
 </table>
 <p>Each configured Source instance is its own block, <code>source:&lt;id&gt;</code>: <code>{"enabled": …, "config": {…}}</code> ({{cite src/policy.ts:98}}). Its <code>config</code> shape is the Source kind's own, such as GitHub's <code>repository</code> and <code>cli</code> ({{cite src/deployment.ts:45-48}}) plus four observe switches, all off by default ({{cite src/sources/github.ts:25-28}}).</p>
-<x-simplified><p>This table leaves out the admission table's own per-cell defaults (<code>listedUnaddressed</code>, <code>unlistedAddressed</code>, <code>unlistedUnaddressed</code>); {{link concepts/policy-and-authorization}} covers admission, and {{cite src/admission.ts:9-13}} is the type.</p></x-simplified>
+<x-simplified><p>This table leaves out the admission table's own per-cell defaults (<code>listedUnaddressed</code>, <code>unlistedAddressed</code>, <code>unlistedUnaddressed</code>); {{link concepts/policy-and-authorization}} covers admission, and {{cite src/admission.ts:9-13}} gives the options and the defaults.</p></x-simplified>
 
-<h2>Environment variables a worker's shell sees</h2>
-<p>These <code>DSH_SUPERAGENT_*</code> variables are set in a {{term ticket | Ticket}}'s execution environment, for its prepare command and for the worker's own shell. None of them is a credential: naming one <code>KEY</code>, <code>PASSWORD</code>, <code>SECRET</code> or <code>TOKEN</code> would make DSH itself strip it from a worker's process environment ({{cite src/infra/environment.ts:2-3}}).</p>
+<h2>Execution environment variables</h2>
+<p>These <code>DSH_SUPERAGENT_*</code> variables make up a {{term ticket | Ticket}}'s execution environment. The prepare command gets them as real environment variables ({{cite src/executor/dsh.ts:251-254}}). The worker gets them as a list in its system prompt, not as variables of its shell ({{cite src/app/sessions.ts:247}}, {{cite src/app/prompts.ts:83-84}}). None of them is a credential. DSH strips a variable whose name has <code>KEY</code>, <code>PASSWORD</code>, <code>SECRET</code> or <code>TOKEN</code> from a child process environment ({{cite src/infra/environment.ts:3}}).</p>
 <table>
 <tr><th>Owner</th><th>Variable</th><th>Set when</th></tr>
-<tr><td rowspan="4">Executor</td><td><code>DSH_SUPERAGENT_DIR</code></td><td>Always, once a Ticket exists: this Ticket's execution directory ({{cite src/app/execution-environment.ts:11}}).</td></tr>
+<tr><td rowspan="4">Executor</td><td><code>DSH_SUPERAGENT_DIR</code></td><td>Always, once a Ticket exists: this Ticket's execution directory ({{cite src/app/execution-environment.ts:11}}, {{cite src/app/execution-environment.ts:29}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_NAME</code></td><td>Always, once a Ticket exists: its short name, also its directory's own name ({{cite src/app/execution-environment.ts:12}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_TICKET</code></td><td>Always, once a Ticket exists: the Ticket id ({{cite src/app/execution-environment.ts:13}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_BLOCKED_COMMANDS</code></td><td>Always: the Execution setting's blocked-command list, space-separated ({{cite src/app/execution-environment.ts:14}}).</td></tr>
 <tr><td rowspan="5">GitHub Source</td><td><code>DSH_SUPERAGENT_GITHUB_REPOSITORY</code></td><td>Always, while GitHub is configured: <code>owner/name</code> ({{cite src/sources/github.ts:94}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_GITHUB_ACCOUNT</code></td><td>Always: the agent's GitHub login ({{cite src/sources/github.ts:95}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_GITHUB_COMMIT_EMAIL</code></td><td>Always: the agent account's commit email ({{cite src/sources/github.ts:96}}).</td></tr>
-<tr><td><code>DSH_SUPERAGENT_GITHUB_NUMBER</code></td><td>Only when the Ticket started from a GitHub Issue or pull request; empty otherwise ({{cite src/sources/github.ts:97}}).</td></tr>
+<tr><td><code>DSH_SUPERAGENT_GITHUB_NUMBER</code></td><td>Only when the Ticket started from a GitHub Issue or pull request; empty otherwise ({{cite src/sources/github.ts:97}}, {{cite src/sources/github.ts:101-102}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_GITHUB_PR_HEAD</code></td><td>Only when the Ticket started from a pull request: its <code>refs/pull/&lt;number&gt;/head</code>; empty otherwise ({{cite src/sources/github.ts:98}}, {{cite src/sources/github.ts:103}}).</td></tr>
 <tr><td rowspan="2">Feishu Source</td><td><code>DSH_SUPERAGENT_FEISHU_BOT</code></td><td>Always, while Feishu is configured: the bot's name, or its id if it has none ({{cite src/sources/feishu.ts:120}}).</td></tr>
 <tr><td><code>DSH_SUPERAGENT_FEISHU_CHAT</code></td><td>Only when the Ticket started from Feishu: that chat's id; empty otherwise ({{cite src/sources/feishu.ts:121}}, {{cite src/sources/feishu.ts:123}}).</td></tr>
 </table>
-<p>A Source only contributes its variables while it is on; <code>declaredVariables()</code> marks a disabled Source's own variables <code>enabled: false</code> rather than leaving them out, so the panel can still show their names ({{cite src/app/execution-environment.ts:20-24}}).</p>
+<p>A Source gives its variables only while it is on ({{cite src/app/execution-environment.ts:31}}). <code>declaredVariables()</code> still lists a disabled Source's variables, marked <code>enabled: false</code> ({{cite src/app/execution-environment.ts:20-24}}). The settings view of the API serves this list ({{cite src/app/views/settings.ts:39}}).</p>
 
 <h2>The scripts/dsh-superagent CLI</h2>
 <x-warning title="A Python script, not a shell script"><p><code>scripts/dsh-superagent</code> is a 250-line Python script, with the shebang <code>#!/usr/bin/env python3</code> ({{cite scripts/dsh-superagent:1}}). It still manages the service through <code>tmux</code>, but the file itself is Python.</p></x-warning>
@@ -66,28 +66,28 @@ summary: How dsh-superagent loads as a DSH bundle, each settings block's default
 <table>
 <tr><th>Action</th><th>What it does</th></tr>
 <tr><td><code>status</code></td><td>Prints process ids, health and setup problems as JSON, and returns the exit code below ({{cite scripts/dsh-superagent:122-129}}).</td></tr>
-<tr><td><code>start</code></td><td>Starts the service in a new tmux window if it is not already running, then polls <code>status</code> until it is healthy or the timeout passes ({{cite scripts/dsh-superagent:159-206}}).</td></tr>
-<tr><td><code>stop</code></td><td>Sends <code>SIGINT</code> and waits for a graceful shutdown; records an intentional-stop marker so automatic recovery skips later starts ({{cite scripts/dsh-superagent:132-148}}).</td></tr>
+<tr><td><code>start</code></td><td>If the service does not run, starts it in a new tmux window, or in a new tmux session when none exists. Then it polls <code>GET state</code> until the runtime is up or the timeout passes ({{cite scripts/dsh-superagent:159-206}}).</td></tr>
+<tr><td><code>stop</code></td><td>Sends <code>SIGINT</code> and waits for a graceful shutdown. It also records an intentional-stop marker, so a monitor that uses <code>--respect-stop</code> skips later starts ({{cite scripts/dsh-superagent:132-148}}).</td></tr>
 <tr><td><code>restart</code></td><td>Runs <code>stop</code> without the marker, then <code>start</code> ({{cite scripts/dsh-superagent:237-241}}).</td></tr>
 </table>
-<p>Flags, each with an environment-variable override read at argument-parsing time:</p>
+<p>The flags are below. Only <code>--profile</code> and <code>--url</code> read an environment variable for their default:</p>
 <table>
 <tr><th>Flag</th><th>Default</th><th>Meaning</th></tr>
 <tr><td><code>--profile</code></td><td><code>$DSH_SUPERAGENT_PROFILE</code>, or <code>superagent</code></td><td>Which DSH profile to control ({{cite scripts/dsh-superagent:212-213}}).</td></tr>
 <tr><td><code>--url</code></td><td><code>$DSH_SUPERAGENT_URL</code>, or <code>http://127.0.0.1:3082</code></td><td>Where to read <code>GET state</code> for a health check ({{cite scripts/dsh-superagent:214-215}}).</td></tr>
 <tr><td><code>--timeout</code></td><td>60 seconds</td><td>How long <code>start</code> waits for the runtime to become ready ({{cite scripts/dsh-superagent:216}}).</td></tr>
-<tr><td><code>--stop-timeout</code></td><td>300 seconds</td><td>How long <code>stop</code> waits for Executor Sessions to finish their step ({{cite scripts/dsh-superagent:217-218}}).</td></tr>
+<tr><td><code>--stop-timeout</code></td><td>300 seconds</td><td>How long <code>stop</code> waits for a graceful shutdown, while running Executor Sessions finish their step ({{cite scripts/dsh-superagent:217-218}}).</td></tr>
 <tr><td><code>--respect-stop</code></td><td>off</td><td>For a monitor: skip <code>start</code> or <code>restart</code> while an intentional stop is active ({{cite scripts/dsh-superagent:219-220}}, {{cite scripts/dsh-superagent:232-234}}).</td></tr>
 </table>
 <p><code>status</code>, <code>start</code> and <code>restart</code> share one exit-code scheme, computed by <code>outcome()</code> ({{cite scripts/dsh-superagent:112-119}}):</p>
 <table>
 <tr><th>Code</th><th>Meaning</th></tr>
 <tr><td>0</td><td>The service runs normally: none of the other three conditions below held ({{cite scripts/dsh-superagent:118-119}}).</td></tr>
-<tr><td>1</td><td>It does not run, runs twice, does not answer, or its <code>runtime</code> health entry is not <code>ready</code> or <code>paused</code> ({{cite scripts/dsh-superagent:114-115}}, {{cite scripts/dsh-superagent:102-104}}).</td></tr>
+<tr><td>1</td><td>It does not run, runs twice, does not answer, or its <code>runtime</code> health entry is not <code>ready</code> or <code>paused</code> ({{cite scripts/dsh-superagent:114-115}}, {{cite scripts/dsh-superagent:102-104}}). The script also exits with 1 on an error such as a start timeout ({{cite scripts/dsh-superagent:246-250}}).</td></tr>
 <tr><td>2</td><td>It runs, but some other part reports an error ({{cite scripts/dsh-superagent:118-119}}, {{cite scripts/dsh-superagent:107-109}}). A restart does not fix this.</td></tr>
 <tr><td>3</td><td>It runs and waits for setup ({{cite scripts/dsh-superagent:116-117}}). A restart does not fix this either.</td></tr>
 </table>
-<p>The CLI reads the exact same route the panel polls, with the same marker header: <code>GET state</code> with <code>x-orchestrator-request: 1</code> ({{cite scripts/dsh-superagent:81-84}}). {{link concepts/panel-and-management-api}} covers why that header is required.</p>
+<p>The CLI reads <code>GET state</code>, a route that the panel also reads, with the same marker header, <code>x-orchestrator-request: 1</code> ({{cite scripts/dsh-superagent:81-84}}, {{cite src/client/api.ts:37}}). {{link concepts/panel-and-management-api}} covers why that header is required.</p>
 
 <h2>The Management API</h2>
 <p>{{link concepts/panel-and-management-api}} covers the loopback and same-origin checks, and how a save versions against one block. This table is the route list itself, from <code>routes()</code> ({{cite src/app/http.ts:151-214}}).</p>
@@ -95,12 +95,12 @@ summary: How dsh-superagent loads as a DSH bundle, each settings block's default
 <tr><th>Request</th><th>What it does</th></tr>
 <tr><td><code>GET state</code></td><td>Setup, health, load and pause state; read by the panel and by <code>scripts/dsh-superagent status</code> ({{cite src/app/http.ts:104-109}}, {{cite src/app/http.ts:156}}).</td></tr>
 <tr><td><code>GET overview</code></td><td>The Overview tab's summary ({{cite src/app/http.ts:157-158}}).</td></tr>
-<tr><td><code>GET search</code></td><td>Searches Threads and messages, including resolving a Feishu message link ({{cite src/app/http.ts:159}}).</td></tr>
-<tr><td><code>GET sources</code></td><td>Each Source's status, health and recent drops ({{cite src/app/http.ts:160}}).</td></tr>
+<tr><td><code>GET search</code></td><td>Searches Triggers, Threads and Tickets; it also matches a cached Feishu message link ({{cite src/app/http.ts:159}}, {{cite src/app/views/threads.ts:55-58}}).</td></tr>
+<tr><td><code>GET sources</code></td><td>Each Source's status and health, and the last day's filtered Triggers and dropped messages ({{cite src/app/http.ts:160}}, {{cite docs/006-deployment.md:173}}).</td></tr>
 <tr><td><code>GET settings</code></td><td>Every settings block, each Source instance, the Policy version and the execution environment ({{cite src/app/http.ts:161}}).</td></tr>
-<tr><td><code>POST sources/:id/labels</code></td><td>Refreshes one Source's cached label list ({{cite src/app/http.ts:162}}).</td></tr>
+<tr><td><code>POST sources/:id/labels</code></td><td>Reads one Source's display names again, such as Feishu chat names ({{cite src/app/http.ts:162}}, {{cite src/app/settings.ts:254-258}}).</td></tr>
 <tr><td><code>GET threads</code>, <code>GET threads/:key</code></td><td>Lists or opens one Thread's detail ({{cite src/app/http.ts:163-172}}).</td></tr>
-<tr><td><code>POST threads/:key/unsubscribe</code></td><td>Removes a Subscription from a Thread ({{cite src/app/http.ts:173-176}}).</td></tr>
+<tr><td><code>POST threads/:key/unsubscribe</code></td><td>Removes every Ticket's Subscription to one Thread ({{cite src/app/http.ts:173-176}}, {{cite src/core/tickets.ts:214-218}}).</td></tr>
 <tr><td><code>POST triggers/:id/requeue</code></td><td>Queues a stored Trigger for a fresh Eval ({{cite src/app/http.ts:177-181}}).</td></tr>
 <tr><td><code>GET decisions</code>, <code>POST decisions/:id/dismiss</code></td><td>Lists Decisions, or dismisses one ({{cite src/app/http.ts:182-187}}).</td></tr>
 <tr><td><code>GET tickets</code>, <code>GET tickets/:id</code></td><td>Lists Tickets, or one Ticket's full detail ({{cite src/app/http.ts:188-192}}).</td></tr>
@@ -109,12 +109,12 @@ summary: How dsh-superagent loads as a DSH bundle, each settings block's default
 <tr><td><code>PUT settings/:block</code></td><td>Saves one settings block against the revision it read ({{cite src/app/http.ts:196-202}}).</td></tr>
 <tr><td><code>GET policy/history</code></td><td>Past Policy versions ({{cite src/app/http.ts:203}}).</td></tr>
 <tr><td><code>POST policy-sync/:id</code></td><td>Re-syncs one Source's allowed list now ({{cite src/app/http.ts:204}}).</td></tr>
-<tr><td><code>POST setup/check</code></td><td>Restarts dsh-superagent to run setup again ({{cite src/app/http.ts:205}}).</td></tr>
+<tr><td><code>POST setup/check</code></td><td>Restarts dsh-superagent to run setup again. It refuses when setup has nothing to fix ({{cite src/app/http.ts:205}}, {{cite src/app/setup.ts:54-57}}).</td></tr>
 <tr><td><code>GET models</code></td><td>The model catalog a settings form's model picker reads ({{cite src/app/http.ts:206}}, {{cite src/client/settings-kit.tsx:74-82}}).</td></tr>
 <tr><td><code>GET prompts</code>, <code>PUT prompts</code></td><td>Reads or saves the prompt configuration, against its own revision ({{cite src/app/http.ts:207-211}}).</td></tr>
 <tr><td><code>POST prompts/preview</code></td><td>Composes both roles' prompts without saving ({{cite src/app/http.ts:212}}).</td></tr>
 </table>
-<p>A request needs the <code>127.0.0.1</code> or <code>localhost</code> host, the <code>x-orchestrator-request: 1</code> header, and no foreign <code>Origin</code> ({{cite src/app/http.ts:75-79}}). A refusal uses a plain status code: 400 for an invalid request, 404 for something missing, 409 for a stale revision, 500 for anything else ({{cite src/app/http.ts:81-91}}).</p>
-<x-simplified><p>This table leaves out each response's exact JSON shape. <code>src/app/api.ts</code> types every route's parameters and response, shared by the server and the panel's browser bundle; the repository's own route table, with full field lists, is {{cite docs/006-deployment.md:169-179}}.</p></x-simplified>
+<p>A request needs the <code>127.0.0.1</code> or <code>localhost</code> host with the web server's port, the <code>x-orchestrator-request: 1</code> header, and no foreign <code>Origin</code> ({{cite src/app/http.ts:75-79}}). A request that fails this check gets 403 ({{cite src/app/http.ts:237}}). Other refusals use a plain status code: 400 for an invalid request, 404 for something missing, 409 for a stale revision, 500 for anything else ({{cite src/app/http.ts:81-91}}).</p>
+<x-simplified><p>This table leaves out each response's exact JSON shape. <code>src/app/api.ts</code> types every route's parameters and response, shared by the server and the panel's browser bundle; the repository's own table of the routes that agents may rely on, with their fields, is {{cite docs/006-deployment.md:167-179}}.</p></x-simplified>
 
 <p>For installing a deployment from nothing, the agent GitHub and Feishu accounts, and troubleshooting a setup problem, see the repository's own {{cite docs/006-deployment.md}}.</p>
