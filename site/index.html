@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh-superagent Explained</title>
+<meta name="description" content="A study guide to this codebase for developers who are new to it. It starts simple and goes down to the exact code.">
+<script>try{var t=localStorage.getItem("explainer-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..700;1,14..32,400..700&amp;display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body data-root="" data-page="index">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <button type="button" class="menu-btn" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span></span><span></span><span></span></button>
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">SA</span><span class="brand-name">dsh-superagent Explained</span></a>
+  <div class="search" role="search">
+    <input type="search" id="search-input" placeholder="Search  ( / )" aria-label="Search the site" autocomplete="off" spellcheck="false">
+    <div class="search-results" id="search-results" role="listbox" hidden></div>
+  </div>
+  <button type="button" class="theme-btn" aria-label="Switch between light and dark mode" title="Light / dark mode">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+  </button>
+</header>
+<div class="layout">
+<aside class="sidebar" id="sidebar" aria-label="Site navigation">
+<nav>
+<a class="nav-home current" href="index.html">Home</a>
+<details class="nav-sec" open><summary><span class="nav-sec-title">Learn the basics</span><span class="nav-count" title="1 of 1 pages written">1/1</span></summary>
+<ul>
+<li><a href="learn/what-this-is.html">What dsh-superagent is</a></li>
+</ul>
+</details>
+<details class="nav-sec"><summary><span class="nav-sec-title">dsh-superagent concepts</span><span class="nav-count" title="7 of 7 pages written">7/7</span></summary>
+<p class="nav-group">Domain core</p>
+<ul>
+<li><a href="concepts/sources-and-triggers.html">Sources and Triggers</a></li>
+<li><a href="concepts/policy-and-authorization.html">Policy and authorization</a></li>
+<li><a href="concepts/ticket-lifecycle.html">The Ticket lifecycle</a></li>
+</ul>
+<p class="nav-group">Execution</p>
+<ul>
+<li><a href="concepts/executor-and-worker-sessions.html">The Executor and worker sessions</a></li>
+<li><a href="concepts/effects-and-store.html">Effects and the Store</a></li>
+</ul>
+<p class="nav-group">Prompts and panel</p>
+<ul>
+<li><a href="concepts/prompts-and-skills.html">Prompts and Source skills</a></li>
+<li><a href="concepts/panel-and-management-api.html">The panel and the Management API</a></li>
+</ul>
+</details>
+<details class="nav-sec"><summary><span class="nav-sec-title">Guided tours</span><span class="nav-count" title="1 of 1 pages written">1/1</span></summary>
+<ul>
+<li><a href="tours/life-of-a-github-mention.html">Life of a GitHub mention</a></li>
+</ul>
+</details>
+<details class="nav-sec"><summary><span class="nav-sec-title">Code map</span><span class="nav-count" title="2 of 2 pages written">2/2</span></summary>
+<p class="nav-group">Overview</p>
+<ul>
+<li><a href="code/index.html">Folder tree</a></li>
+</ul>
+<p class="nav-group">Reference</p>
+<ul>
+<li><a href="code/central-files.html">The central files</a></li>
+</ul>
+</details>
+<details class="nav-sec"><summary><span class="nav-sec-title">Reference</span><span class="nav-count" title="2 of 2 pages written">2/2</span></summary>
+<ul>
+<li><a href="reference/config-and-deployment.html">Configuration and deployment</a></li>
+<li><a href="reference/glossary.html">Glossary</a></li>
+</ul>
+</details>
+</nav>
+</aside>
+<div class="scrim" hidden></div>
+<main id="main" class="main">
+<article class="article">
+<nav class="breadcrumbs" aria-label="Breadcrumbs"><a href="index.html">Home</a></nav>
+<h1 class="page-title">dsh-superagent Explained</h1>
+
+<p class="code-version">Code version: dsh-superagent @ <a href="https://github.com/deepseek-ai/dsh-superagent-prototype/tree/6337fc823ce20251c8de8085948165c81aaa701e" target="_blank" rel="noopener" title="6337fc823ce20251c8de8085948165c81aaa701e"><code>6337fc8</code></a> · 2026-10-31</p>
+
+<p><strong>dsh-superagent</strong> is a proactive coding agent for one GitHub repository, packaged as a bundle for DeepSeek Harness, DSH (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/README.md#L7" target="_blank" rel="noopener" title="README.md:7 at 6337fc8"><code>README.md:7</code></a>). It runs inside a DSH profile, as a set of Cordis plugins that its bundle file inserts (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/package.json#L30-L33" target="_blank" rel="noopener" title="package.json:30-33 at 6337fc8"><code>package.json:30-33</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/cordis.patch.yml#L4-L12" target="_blank" rel="noopener" title="cordis.patch.yml:4-12 at 6337fc8"><code>cordis.patch.yml:4-12</code></a>). The sibling site, <a href="../../deepseek-harness-explainer/site/index.html"><strong>DeepSeek Harness Explained</strong></a>, teaches Cordis and DSH on their own. This site explains only what dsh-superagent adds on top of them. This site explains the code at commit <code>6337fc8</code>. You need to know TypeScript and Node. You do not need to know this project's domain model yet: <a href="learn/what-this-is.html">What dsh-superagent is</a> teaches it.</p>
+
+<table>
+  <tbody>
+    <tr><th>What it does</th><td>Listens to GitHub (and, optionally, Feishu); when an allowed person asks for work, it opens a <a class="term" href="reference/glossary.html#term-ticket" data-term="Ticket" data-def="A unit of authorized work. Only an Eval&#x27;s accept creates one; it goes open to ended and sometimes back to open.">Ticket</a> and works on it in its own agent Session and directory (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/README.md#L7" target="_blank" rel="noopener" title="README.md:7 at 6337fc8"><code>README.md:7</code></a>).</td></tr>
+    <tr><th>Runs on</th><td>Node.js, inside a DSH process, mainly as the Cordis plugin <code>dsh-superagent</code>, with one plugin for each Source (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/index.ts#L7" target="_blank" rel="noopener" title="src/index.ts:7 at 6337fc8"><code>src/index.ts:7</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/cordis.patch.yml#L4-L12" target="_blank" rel="noopener" title="cordis.patch.yml:4-12 at 6337fc8"><code>cordis.patch.yml:4-12</code></a>).</td></tr>
+    <tr><th>Code size</th><td>TypeScript and TSX across <code>src/</code>, plus prompts and skills; the project has an unusually large test suite, indexed by its own test table (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/docs/007-architecture.md#L402-L405" target="_blank" rel="noopener" title="docs/007-architecture.md:402-405 at 6337fc8"><code>docs/007-architecture.md:402-405</code></a>). See <a href="code/index.html">Code map: the folder tree</a>.</td></tr>
+    <tr><th>Run it</th><td>Setup has many steps, so a coding agent does it with you, following the repository's own <code>SETUP.md</code> (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/README.md#L13-L17" target="_blank" rel="noopener" title="README.md:13-17 at 6337fc8"><code>README.md:13-17</code></a>).</td></tr>
+  </tbody>
+</table>
+
+<h2 id="system-map">The system map<a class="h-anchor" href="#system-map" aria-label="Link to this section">#</a></h2>
+<p>The map shows the main parts, and the order a GitHub event goes through them to become a Ticket and, later, a reply. Each title is a link. A grey link is a page not written yet.</p>
+<ol>
+  <li><strong>1 · <a href="concepts/sources-and-triggers.html">Source and Trigger</a></strong> — the GitHub Source polls and reads events, and turns each one into an immutable <a class="term" href="reference/glossary.html#term-trigger" data-term="Trigger" data-def="One immutable event a Source produces, such as a GitHub comment or a Feishu message, with the Source&#x27;s own metadata.">Trigger</a> (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/sources/github.ts#L280-L296" target="_blank" rel="noopener" title="src/sources/github.ts:280-296 at 6337fc8"><code>src/sources/github.ts:280-296</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/sources/github-trigger.ts#L65-L77" target="_blank" rel="noopener" title="src/sources/github-trigger.ts:65-77 at 6337fc8"><code>src/sources/github-trigger.ts:65-77</code></a>).</li>
+  <li><strong>2 · <a href="concepts/policy-and-authorization.html">Policy, gate and Eval</a></strong> — the gate checks who may ask for work, and Eval asks for an assessment of an admissible batch, which ends in a Decision (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/policy.ts#L191-L211" target="_blank" rel="noopener" title="src/policy.ts:191-211 at 6337fc8"><code>src/policy.ts:191-211</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/evals.ts#L71-L119" target="_blank" rel="noopener" title="src/core/evals.ts:71-119 at 6337fc8"><code>src/core/evals.ts:71-119</code></a>).</li>
+  <li><strong>3 · <a href="concepts/ticket-lifecycle.html">The Ticket</a></strong> — an accept Decision creates a Ticket under a <a class="term" href="reference/glossary.html#term-mandate" data-term="Mandate" data-def="What an accept grants: the strength, scope and Policy version a Ticket&#x27;s work relies on. It never changes once set.">Mandate</a>, with its first <a class="term" href="reference/glossary.html#term-assignment" data-term="Assignment" data-def="The binding of a Ticket to one Executor instance. A Ticket has several over time. Its state is pending, running or ended.">Assignment</a> (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/core/tickets.ts#L37-L56" target="_blank" rel="noopener" title="src/core/tickets.ts:37-56 at 6337fc8"><code>src/core/tickets.ts:37-56</code></a>).</li>
+  <li><strong>4 · <a href="concepts/executor-and-worker-sessions.html">The Executor</a></strong> — the Executor queues a launch for the Ticket. The launch starts one worker Session for the Ticket, in its own directory (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/executor/dsh.ts#L1" target="_blank" rel="noopener" title="src/executor/dsh.ts:1 at 6337fc8"><code>src/executor/dsh.ts:1</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/executor/dsh.ts#L263-L266" target="_blank" rel="noopener" title="src/executor/dsh.ts:263-266 at 6337fc8"><code>src/executor/dsh.ts:263-266</code></a>).</li>
+  <li><strong>5 · The reply</strong> — a worker's report can send a reply back through a <a class="term" href="reference/glossary.html#term-channel" data-term="Channel" data-def="The write side of a Thread: where a reply, acknowledgement or result goes back to the Source.">Channel</a>, such as a GitHub comment (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/outbox.ts#L27-L32" target="_blank" rel="noopener" title="src/app/outbox.ts:27-32 at 6337fc8"><code>src/app/outbox.ts:27-32</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/sources/github-channel.ts#L18-L45" target="_blank" rel="noopener" title="src/sources/github-channel.ts:18-45 at 6337fc8"><code>src/sources/github-channel.ts:18-45</code></a>).</li>
+</ol>
+<p>Two parts sit beside every step, not inside the numbered path. A SQLite Store holds every Trigger, Thread, Decision, Ticket and Assignment the Engine writes (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/store.ts#L1" target="_blank" rel="noopener" title="src/app/store.ts:1 at 6337fc8"><code>src/app/store.ts:1</code></a>), and the durable <a class="term" href="reference/glossary.html#term-effect" data-term="Effect" data-def="One durable row in the side-effect queue: an assessment, a launch, a delivery, a relay, a notice or a reply, run after its transaction commits.">Effects</a> queue runs the launches, deliveries and replies each step enqueues (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/app/effects.ts#L42-L45" target="_blank" rel="noopener" title="src/app/effects.ts:42-45 at 6337fc8"><code>src/app/effects.ts:42-45</code></a>). The React <a href="concepts/panel-and-management-api.html">panel</a> shows what needs a person (<a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/README.md#L7" target="_blank" rel="noopener" title="README.md:7 at 6337fc8"><code>README.md:7</code></a>, <a class="cite" href="https://github.com/deepseek-ai/dsh-superagent-prototype/blob/6337fc823ce20251c8de8085948165c81aaa701e/src/client/app.tsx#L1" target="_blank" rel="noopener" title="src/client/app.tsx:1 at 6337fc8"><code>src/client/app.tsx:1</code></a>).</p>
+<aside class="callout callout-simplified"><p class="callout-title">Simplified</p><div class="callout-body"><p>The map shows one Ticket's path once. It leaves out retries, resumes, Policy changes and the Feishu Source, which follows the same Source contract as GitHub. The tour <a href="tours/life-of-a-github-mention.html">Life of a GitHub mention: from a comment to a merged pull request</a> follows one real path stop by stop.</p></div></aside>
+
+<h2 id="start-here">Start here<a class="h-anchor" href="#start-here" aria-label="Link to this section">#</a></h2>
+<ul>
+  <li><strong>A. New to the domain.</strong> Read <a href="learn/what-this-is.html">What dsh-superagent is</a> first. Then follow <a href="tours/life-of-a-github-mention.html">Life of a GitHub mention: from a comment to a merged pull request</a>.</li>
+  <li><strong>B. You know the domain.</strong> Start with <a href="tours/life-of-a-github-mention.html">Life of a GitHub mention: from a comment to a merged pull request</a>. Then read the concept pages.</li>
+  <li><strong>C. You study one part.</strong> Use the search (press <kbd>/</kbd>) or <a href="code/index.html">Code map: the folder tree</a>.</li>
+</ul>
+
+<h2 id="how-to-use">How to use this site<a class="h-anchor" href="#how-to-use" aria-label="Link to this section">#</a></h2>
+<ul>
+  <li><strong>Levels.</strong> Each page has a level: Beginner, Intermediate or Advanced.</li>
+  <li><strong>One depth per page.</strong> A page starts with a plain explanation and a diagram. Then it shows the real code, with one compact "More detail" section.</li>
+  <li><strong>Check yourself.</strong> Most pages end with 3 to 5 questions. Click "Show answer" to see the answer.</li>
+  <li><strong>Search.</strong> Press <kbd>/</kbd>, then type a word, a file name or a setting.</li>
+  <li><strong>Glossary.</strong> Words with a dotted line, such as <a class="term" href="reference/glossary.html#term-ticket" data-term="Ticket" data-def="A unit of authorized work. Only an Eval&#x27;s accept creates one; it goes open to ended and sometimes back to open.">Ticket</a>, have a short definition. <a href="reference/glossary.html">Glossary</a> lists all terms.</li>
+  <li><strong>Code.</strong> The build copies every code excerpt from the repository. Every citation opens the file at commit <code>6337fc8</code>.</li>
+</ul>
+
+<h2 id="code-version">The code version this site explains<a class="h-anchor" href="#code-version" aria-label="Link to this section">#</a></h2>
+<p>This site explains one exact commit of dsh-superagent. Use this version when you study the code with the site.</p>
+<p>To get exactly this version of the code, run these commands:</p>
+<table><tbody><tr><th>Commit</th><td><code>6337fc823ce20251c8de8085948165c81aaa701e</code> (short: <code>6337fc8</code>)</td></tr><tr><th>Date</th><td>2026-10-31 20:05:39 +0800</td></tr><tr><th>Subject</th><td>“feat: add the dsh-superagent research prototype”</td></tr><tr><th>Browse</th><td><a href="https://github.com/deepseek-ai/dsh-superagent-prototype/tree/6337fc823ce20251c8de8085948165c81aaa701e" target="_blank" rel="noopener">deepseek-ai/dsh-superagent-prototype at 6337fc8</a></td></tr></tbody></table>
+<pre><code class="language-bash">git clone https://github.com/deepseek-ai/dsh-superagent-prototype.git
+cd dsh-superagent-prototype
+git checkout 6337fc823ce20251c8de8085948165c81aaa701e</code></pre>
+<aside class="callout callout-note"><p class="callout-title">Line numbers belong to this commit</p><div class="callout-body"><p>Every code excerpt and every <code>file:line</code> link on this site points to commit <code>6337fc8</code>. In a newer version, the line numbers and the code can be different.</p></div></aside>
+
+
+<nav class="prevnext" aria-label="Previous and next page"><span></span><a class="pn pn-next" href="learn/what-this-is.html"><span class="pn-dir">Next →</span><span class="pn-title">What dsh-superagent is</span></a></nav>
+<footer class="page-foot"><p class="foot-commit">Code version: <a href="https://github.com/deepseek-ai/dsh-superagent-prototype/tree/6337fc823ce20251c8de8085948165c81aaa701e" target="_blank" rel="noopener"><code class="foot-sha">6337fc823ce20251c8de8085948165c81aaa701e</code></a> · 2026-10-31 20:05:39 +0800 · “feat: add the dsh-superagent research prototype” · <a href="index.html#code-version">How to study this version</a></p><p>Source: <a href="https://github.com/deepseek-ai/dsh-superagent-prototype" target="_blank" rel="noopener">deepseek-ai/dsh-superagent-prototype</a> · Built 2026-11-03 · Code excerpts are copied from the repo at this commit by the build.</p></footer>
+</article>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-l2"><a href="#system-map">The system map</a></li><li class="toc-l2"><a href="#start-here">Start here</a></li><li class="toc-l2"><a href="#how-to-use">How to use this site</a></li><li class="toc-l2"><a href="#code-version">The code version this site explains</a></li></ul></nav>
+</main>
+</div>
+<div class="lightbox" hidden><div class="lightbox-bar"><span class="lightbox-hint">Scroll to pan. Press Esc to close.</span><button type="button" class="lightbox-close">Close ✕</button></div><div class="lightbox-body"></div></div>
+<div class="tooltip" role="tooltip" id="term-tooltip" hidden></div>
+<script src="assets/search-index.js" defer></script>
+<script src="assets/site.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" defer></script>
+</body>
+</html>
